@@ -1,0 +1,28 @@
+{
+    "name": "Suno Play by ChemaDev",
+    "short_name": "Suno Play",
+    "description": "Tu reproductor de musica impulsado por Suno AI. By ChemaDev.",
+    "start_url": "/sunomusic/",
+    "scope": "/sunomusic/",
+    "id": "/sunomusic/",
+    "display": "standalone",
+    "background_color": "#050507",
+    "theme_color": "#050507",
+    "orientation": "portrait",
+    "lang": "es",
+    "categories": ["music", "entertainment"],
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "icon.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Suno Play by ChemaDev</title>
+    <meta name="description" content="Tu reproductor de musica premium con IA.">
+    <link rel="stylesheet" href="styles.css?v=34">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#06060a">
+    <link rel="apple-touch-icon" href="icon.png">
+</head>
+
+<body>
+    <!-- Modal de Bienvenida -->
+    <div id="welcome-modal" class="welcome-modal">
+        <div class="welcome-content">
+            <div class="welcome-logo">
+                <div class="welcome-icon">🎵</div>
+                <h1>Suno Play <span>by ChemaDev</span></h1>
+            </div>
+            <div class="welcome-features">
+                <div class="welcome-feature">
+                    <span class="feature-icon">🎲</span>
+                    <div>
+                        <strong>Descubre música</strong>
+                        <p>Pulsa Sorpresa para descubrir canciones de Suno AI y Jamendo</p>
+                    </div>
+                </div>
+                <div class="welcome-feature">
+                    <span class="feature-icon">👍👎</span>
+                    <div>
+                        <strong>Vota canciones</strong>
+                        <p>Dale +1 o -1 corazones. Con 0 corazones se elimina</p>
+                    </div>
+                </div>
+                <div class="welcome-feature">
+                    <span class="feature-icon">🏆</span>
+                    <div>
+                        <strong>Tu Ranking personal</strong>
+                        <p>Tus valoraciones son únicas. Cada usuario tiene su propio ranking</p>
+                    </div>
+                </div>
+                <div class="welcome-feature">
+                    <span class="feature-icon">🎵</span>
+                    <div>
+                        <strong>Filtra por género</strong>
+                        <p>Selecciona un género para escuchar solo lo que te gusta</p>
+                    </div>
+                </div>
+            </div>
+            <div class="welcome-login">
+                <p class="login-subtitle">Inicia sesión con Google para empezar</p>
+                <div id="google-signin-btn" class="google-btn-wrapper"></div>
+                <p class="login-required-note">Se requiere cuenta de Google para acceder</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="mesh-gradient"></div>
+    <div class="app-container">
+        <header>
+            <div class="brand">
+                <div class="brand-icon"><i data-lucide="disc-3"></i></div>
+                <div class="brand-text">
+                    <h2>Suno Play</h2>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div id="user-info" class="user-info" style="display:none;">
+                    <img id="user-avatar" class="user-avatar" src="" alt="">
+                </div>
+                <button class="header-btn" id="auth-btn" title="Login" style="display:none;">
+                    👤
+                </button>
+                <button class="header-btn" id="library-btn" title="Ranking">
+                    🏆
+                    <span class="lib-badge" id="lib-count">0</span>
+                </button>
+            </div>
+        </header>
+        <main class="player-main">
+            <div class="artwork-container">
+                <div class="artwork-glow"></div>
+                <div class="artwork-ring"></div>
+                <div class="artwork" id="artwork-wrapper">
+                    <img src="icon.png" alt="Suno Play" id="player-thumb">
+                    <div id="loading-indicator">
+                        <div class="loader-spinner"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="song-meta">
+                <h1 id="player-title">Listo para sonar</h1>
+                <p id="player-artist">SunoPlay AI</p>
+                <p id="player-genre" class="player-genre"></p>
+            </div>
+            <div class="seek-container">
+                <span class="time-label" id="time-current">0:00</span>
+                <div class="seek-bar" id="seek-bar">
+                    <div class="seek-fill" id="seek-fill"></div>
+                </div>
+                <span class="time-label" id="time-total">0:00</span>
+            </div>
+        </main>
+        <section class="controls-box">
+            <div id="hearts-row" class="hearts-row">
+                <div id="unified-hearts-display" class="hearts-display">❤️❤️❤️<span class="hearts-count">(3)</span>
+                </div>
+                <button class="btn-genre" id="genre-menu-btn">🎵 <span id="genre-btn-text">Todo</span></button>
+            </div>
+            <div class="playback-controls">
+                <button class="btn-secondary" id="prev-btn" title="Anterior"><i data-lucide="skip-back"></i></button>
+                <button class="btn-secondary" id="stop-btn" title="Detener"><i data-lucide="square"></i></button>
+                <button class="btn-main" id="play-pause-btn"><i data-lucide="play" id="play-icon"></i></button>
+                <button class="btn-secondary" id="next-btn" title="Siguiente"><i
+                        data-lucide="skip-forward"></i></button>
+                <button class="btn-secondary" id="save-btn" title="Guardar"><i data-lucide="heart"></i></button>
+            </div>
+            <div class="vote-controls">
+                <button class="btn-vote dislike" id="vote-dislike">
+                    <span class="vote-emoji">👎</span>
+                    <span class="vote-label">-1</span>
+                </button>
+                <button class="btn-vote like" id="vote-like">
+                    <span class="vote-emoji">👍</span>
+                    <span class="vote-label">+1</span>
+                </button>
+            </div>
+            <div class="extra-controls">
+                <button class="btn-pill surprise" id="surprise-btn"><i data-lucide="shuffle"></i>
+                    <span>Sorpresa/Nueva</span></button>
+            </div>
+            <div class="volume-row">
+                <button class="volume-btn" id="volume-icon-btn"><i data-lucide="volume-2" id="volume-icon"></i></button>
+                <div class="volume-slider" id="volume-slider">
+                    <div class="volume-fill" id="volume-fill"></div>
+                </div>
+            </div>
+        </section>
+        <footer class="stats-footer">
+            <span><i data-lucide="hard-drive" style="width:14px;height:14px;"></i> <span id="lib-size">0
+                    KB</span></span>
+            <div class="footer-credit">By ChemaDev</div>
+        </footer>
+    </div>
+    <div id="search-overlay" class="search-overlay">
+        <div class="search-container">
+            <div class="search-bar-wrapper">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="search-input" placeholder="Buscar en tu biblioteca..." autocomplete="off">
+                <button id="close-search-btn" class="close-search-btn"><i data-lucide="x"></i></button>
+            </div>
+            <div id="search-results" class="search-results">
+                <!-- Los resultados aparecerán aquí -->
+            </div>
+        </div>
+    </div>
+
+    <audio id="main-audio"></audio>
+    <script src="app_v2.js?v=36"></script>
+    <script>
+        lucide.createIcons();
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js?v=34').then(reg => reg.update());
+        }
+    </script>
+</body>
+
+</html>

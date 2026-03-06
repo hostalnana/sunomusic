@@ -1,0 +1,12 @@
+{
+  "name": "sunoplay",
+  "version": "1.0.0",
+  "description": "Premium Suno.com Music Player",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,27 @@
+# Archivos de audio descargados
+downloads/*.mp3
+downloads/*.m4a
+downloads/*.ogg
+downloads/*.wav
+
+# Imágenes/miniaturas descargadas
+downloads/*.jpg
+downloads/*.jpeg
+downloads/*.png
+downloads/*.webp
+
+# Pero sí incluir el library.json (índice de la librería)
+!downloads/library.json
+
+# Audio de muestra local (si los hay en /audio)
+# audio/*.mp3
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Backups
+*.bak
