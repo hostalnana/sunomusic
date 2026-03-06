@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sunoplay-cache-v36';
+const CACHE_NAME = 'cache-20260306212451';
 
 const AUDIO_CACHE_NAME = 'sunomusic-audio-v3';
 

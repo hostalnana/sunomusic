@@ -1,5 +1,60 @@
 [
     {
+        "id": "suno-02fd2723-da37-41d5-8524-e39899db9b40",
+        "title": "Cosmic voyager",
+        "artist": "Suno AI",
+        "genre": "disco",
+        "hearts": 1,
+        "url": "downloads\/audio_298278b0ddfc9898fba864ae60b97ee6.mp3",
+        "thumb": "downloads\/thumb_298278b0ddfc9898fba864ae60b97ee6.jpg",
+        "size": 4456845,
+        "savedAt": 1772809177000
+    },
+    {
+        "id": "suno-f7e2eb6d-183f-44f9-8df8-e3dc40020aae",
+        "title": "Morning glow blues",
+        "artist": "Suno AI",
+        "genre": "jazz",
+        "hearts": 1,
+        "url": "downloads\/audio_da14074fe8be10dee134ec5943efe412.mp3",
+        "thumb": "downloads\/thumb_da14074fe8be10dee134ec5943efe412.jpg",
+        "size": 3923085,
+        "savedAt": 1772808849000
+    },
+    {
+        "id": "suno-749e440d-d1ec-44a4-867e-995af0147127",
+        "title": "Das lied der vorreiter",
+        "artist": "Suno AI",
+        "genre": "folk",
+        "hearts": 1,
+        "url": "downloads\/audio_81ae6c85944201695416b266f7b8e3ba.mp3",
+        "thumb": "downloads\/thumb_81ae6c85944201695416b266f7b8e3ba.jpg",
+        "size": 1764477,
+        "savedAt": 1772808431000
+    },
+    {
+        "id": "suno-26f530cc-3d0d-4057-8787-a3a28d121d56",
+        "title": "Acoustic funk",
+        "artist": "Suno AI",
+        "genre": "funk",
+        "hearts": 1,
+        "url": "downloads\/audio_14f6ec59c5597459fd2363517fa3a140.mp3",
+        "thumb": "downloads\/thumb_14f6ec59c5597459fd2363517fa3a140.jpg",
+        "size": 2292525,
+        "savedAt": 1772807952000
+    },
+    {
+        "id": "suno-776e31d6-bcf3-4fe6-9ad3-2ec55d1db991",
+        "title": "Unseen shackles",
+        "artist": "Suno AI",
+        "genre": "grunge",
+        "hearts": 1,
+        "url": "downloads\/audio_0da75c31230e629ca396e080b6fc0e26.mp3",
+        "thumb": "downloads\/thumb_0da75c31230e629ca396e080b6fc0e26.jpg",
+        "size": 2378685,
+        "savedAt": 1772804683000
+    },
+    {
         "id": "suno-35fe8494-fc0f-4921-a7b2-2bc0d03161b8",
         "title": "Wounded warriors",
         "artist": "Suno AI",
@@ -939,7 +994,7 @@
         "title": "Frequency of love",
         "artist": "Suno AI",
         "genre": "experimental",
-        "hearts": 3,
+        "hearts": 4,
         "url": "downloads\/audio_5a06e14162771803ac4c8d8d40b8f8e5.mp3",
         "thumb": "downloads\/thumb_5a06e14162771803ac4c8d8d40b8f8e5.jpg",
         "size": 2314077,
