@@ -1,0 +1,28 @@
+R_DEF: Internal format may change without notice
+local
+drawable ic_music_note
+drawable ic_pause
+drawable ic_play
+drawable ic_skip_next
+drawable ic_skip_previous
+id artist
+id artwork
+id bottom_bar
+id btn_next
+id btn_play_pause
+id btn_prev
+id header_label
+id item_artist
+id item_title
+id song_list
+id title
+layout activity_main
+layout item_song
+mipmap ic_launcher
+string app_name
+string browse_biblioteca
+string browse_generos
+string browse_sorpresa
+string notification_channel
+style AppTheme
+xml automotive_app_desc

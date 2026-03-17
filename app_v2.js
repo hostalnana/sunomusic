@@ -896,12 +896,33 @@ function updatePlayerUI() {
         navigator.mediaSession.metadata = new MediaMetadata({
             title: currentSong.title,
             artist: currentSong.artist,
-            artwork: currentSong.thumb ? [{ src: currentSong.thumb, sizes: '512x512', type: 'image/png' }] : []
+            artwork: currentSong.thumb ? [
+                { src: currentSong.thumb, sizes: '96x96', type: 'image/png' },
+                { src: currentSong.thumb, sizes: '256x256', type: 'image/png' },
+                { src: currentSong.thumb, sizes: '512x512', type: 'image/png' }
+            ] : []
         });
-        navigator.mediaSession.setActionHandler('play', handlePlayPause);
-        navigator.mediaSession.setActionHandler('pause', handlePlayPause);
-        navigator.mediaSession.setActionHandler('nexttrack', playNext);
+        navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+        navigator.mediaSession.setActionHandler('play', () => { if (!isPlaying) handlePlayPause(); });
+        navigator.mediaSession.setActionHandler('pause', () => { if (isPlaying) handlePlayPause(); });
+        navigator.mediaSession.setActionHandler('stop', handleStop);
+        navigator.mediaSession.setActionHandler('nexttrack', () => playNext(true));
         navigator.mediaSession.setActionHandler('previoustrack', playPrev);
+        navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+            seekBackward(details.seekOffset || 10);
+        });
+        navigator.mediaSession.setActionHandler('seekforward', (details) => {
+            seekForward(details.seekOffset || 10);
+        });
+        try {
+            navigator.mediaSession.setActionHandler('seekto', (details) => {
+                if (details.seekTime != null && mainAudio.duration) {
+                    mainAudio.currentTime = details.seekTime;
+                    updatePositionState();
+                }
+            });
+        } catch (e) { /* seekto not supported */ }
+        updatePositionState();
     }
 }
 
@@ -926,6 +947,39 @@ function handleStop() {
     if (seekFill) seekFill.style.width = '0%';
     if (timeCurrentEl) timeCurrentEl.textContent = '0:00';
     updatePlayerUI();
+}
+
+function seekForward(seconds = 10) {
+    if (!mainAudio.duration) return;
+    mainAudio.currentTime = Math.min(mainAudio.duration, mainAudio.currentTime + seconds);
+    updatePositionState();
+}
+
+function seekBackward(seconds = 10) {
+    if (!mainAudio.duration) return;
+    mainAudio.currentTime = Math.max(0, mainAudio.currentTime - seconds);
+    updatePositionState();
+}
+
+function volumeUp() {
+    mainAudio.volume = Math.min(1, mainAudio.volume + 0.1);
+    mainAudio.muted = false;
+    localStorage.setItem('sunoplay-volume', mainAudio.volume);
+    updateVolumeUI();
+    showToast(`🔊 ${Math.round(mainAudio.volume * 100)}%`);
+}
+
+function volumeDown() {
+    mainAudio.volume = Math.max(0, mainAudio.volume - 0.1);
+    localStorage.setItem('sunoplay-volume', mainAudio.volume);
+    updateVolumeUI();
+    showToast(`🔉 ${Math.round(mainAudio.volume * 100)}%`);
+}
+
+function toggleMute() {
+    mainAudio.muted = !mainAudio.muted;
+    updateVolumeUI();
+    showToast(mainAudio.muted ? '🔇 Silenciado' : `🔊 ${Math.round(mainAudio.volume * 100)}%`);
 }
 
 // === Save Button ===
@@ -1085,6 +1139,97 @@ function playDemoFallback(genre) {
     tryPlaySong(song);
 }
 
+// === Position State for Media Session (lock screen seek bar) ===
+function updatePositionState() {
+    if ('mediaSession' in navigator && mainAudio.duration && isFinite(mainAudio.duration)) {
+        try {
+            navigator.mediaSession.setPositionState({
+                duration: mainAudio.duration,
+                playbackRate: mainAudio.playbackRate,
+                position: Math.min(mainAudio.currentTime, mainAudio.duration)
+            });
+        } catch (e) { /* not supported */ }
+    }
+}
+
+// === Keyboard Controls ===
+function initKeyboardControls() {
+    document.addEventListener('keydown', (e) => {
+        // No capturar si está escribiendo en un input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+
+        switch (e.code) {
+            case 'Space':
+                e.preventDefault();
+                handlePlayPause();
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                if (e.shiftKey) {
+                    playNext(true); // Shift+Right = siguiente cancion
+                } else {
+                    seekForward(10); // Right = avanzar 10s
+                }
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                if (e.shiftKey) {
+                    playPrev(); // Shift+Left = cancion anterior
+                } else {
+                    seekBackward(10); // Left = retroceder 10s
+                }
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                volumeUp();
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                volumeDown();
+                break;
+            case 'KeyM':
+                e.preventDefault();
+                toggleMute();
+                break;
+            case 'KeyN':
+                e.preventDefault();
+                playNext(true);
+                break;
+            case 'KeyP':
+                e.preventDefault();
+                playPrev();
+                break;
+            case 'KeyS':
+                if (!e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    handleStop();
+                }
+                break;
+            case 'Escape':
+                closeSearch();
+                closeGenreMenu();
+                break;
+            // Teclas multimedia del teclado (MediaKeys)
+            case 'MediaPlayPause':
+                e.preventDefault();
+                handlePlayPause();
+                break;
+            case 'MediaTrackNext':
+                e.preventDefault();
+                playNext(true);
+                break;
+            case 'MediaTrackPrevious':
+                e.preventDefault();
+                playPrev();
+                break;
+            case 'MediaStop':
+                e.preventDefault();
+                handleStop();
+                break;
+        }
+    });
+}
+
 // === Init ===
 document.addEventListener('DOMContentLoaded', async () => {
     // Init Google Sign-In
@@ -1157,5 +1302,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Init subsystems
     initSeekBar();
     initVolume();
+    initKeyboardControls();
+    initAndroidBanner();
     updateStorageStats();
+
+    // Actualizar positionState periódicamente para lock screen / Bluetooth
+    mainAudio.addEventListener('timeupdate', updatePositionState);
+    mainAudio.addEventListener('durationchange', updatePositionState);
 });
+
+// === Android APK Download Banner ===
+function initAndroidBanner() {
+    // Solo mostrar en Android, no en standalone (ya instalada) y si no fue descartado recientemente
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    const dismissed = localStorage.getItem('sunoplay-apk-dismissed');
+    const dismissedTime = dismissed ? parseInt(dismissed) : 0;
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+
+    if (!isAndroid || isStandalone || (Date.now() - dismissedTime < sevenDays)) return;
+
+    // Esperar 3 segundos antes de mostrar
+    setTimeout(() => {
+        const banner = document.createElement('div');
+        banner.id = 'android-banner';
+        banner.className = 'android-banner';
+        banner.innerHTML = `
+            <div class="android-banner-icon">📱</div>
+            <div class="android-banner-text">
+                <strong>Suno Play para Android</strong>
+                <span>App nativa con Android Auto y controles Bluetooth</span>
+            </div>
+            <a href="sunoplay.apk" class="android-banner-btn" download="SunoPlay.apk">Descargar</a>
+            <button class="android-banner-close" id="android-banner-close">&times;</button>
+        `;
+        document.body.appendChild(banner);
+
+        requestAnimationFrame(() => banner.classList.add('visible'));
+
+        document.getElementById('android-banner-close').addEventListener('click', () => {
+            banner.classList.remove('visible');
+            localStorage.setItem('sunoplay-apk-dismissed', Date.now().toString());
+            setTimeout(() => banner.remove(), 400);
+        });
+    }, 3000);
+}

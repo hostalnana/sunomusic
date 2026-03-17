@@ -2340,3 +2340,99 @@ body.party-active .brand-icon {
     transform: scale(1.05) translateY(-2px);
     filter: brightness(1.2);
 }
+
+/* === Android APK Banner === */
+.android-banner {
+    position: fixed;
+    bottom: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 24px);
+    max-width: 420px;
+    background: rgba(20, 20, 30, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 5000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(139, 92, 246, 0.15);
+    transition: bottom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.android-banner.visible {
+    bottom: 16px;
+}
+
+.android-banner-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.android-banner-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.android-banner-text strong {
+    display: block;
+    font-size: 0.85rem;
+    color: #e2e8f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.android-banner-text span {
+    display: block;
+    font-size: 0.7rem;
+    color: #94a3b8;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.android-banner-btn {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.android-banner-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+}
+
+.android-banner-close {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(30, 30, 45, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #94a3b8;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.android-banner-close:hover {
+    background: rgba(239, 68, 68, 0.3);
+    color: #fff;
+}

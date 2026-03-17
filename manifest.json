@@ -2,9 +2,9 @@
     "name": "Suno Play by ChemaDev",
     "short_name": "Suno Play",
     "description": "Tu reproductor de musica impulsado por Suno AI. By ChemaDev.",
-    "start_url": "/sunomusic/",
-    "scope": "/sunomusic/",
-    "id": "/sunomusic/",
+    "start_url": "/sunoplay/",
+    "scope": "/sunoplay/",
+    "id": "/sunoplay/",
     "display": "standalone",
     "background_color": "#050507",
     "theme_color": "#050507",
@@ -24,5 +24,13 @@
             "type": "image/png",
             "purpose": "maskable"
         }
-    ]
+    ],
+    "related_applications": [
+        {
+            "platform": "play",
+            "url": "https://app.lomastrend.com/sunoplay/sunoplay.apk",
+            "id": "com.chemadev.sunoplay"
+        }
+    ],
+    "prefer_related_applications": false
 }

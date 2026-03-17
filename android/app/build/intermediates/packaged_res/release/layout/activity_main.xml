@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF050507"
+    android:fitsSystemWindows="false">
+
+    <!-- Song list - full screen -->
+    <ListView
+        android:id="@+id/song_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:divider="@null"
+        android:dividerHeight="0dp"
+        android:clipToPadding="false"
+        android:scrollbarStyle="outsideOverlay"
+        android:paddingTop="48dp"
+        android:paddingBottom="80dp"
+        android:headerDividersEnabled="false" />
+
+    <!-- Header label -->
+    <TextView
+        android:id="@+id/header_label"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:text="Biblioteca"
+        android:textColor="#FFFFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:background="#E6050507"
+        android:layout_gravity="top" />
+
+    <!-- Bottom player bar -->
+    <LinearLayout
+        android:id="@+id/bottom_bar"
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#E61A1A2E"
+        android:paddingStart="12dp"
+        android:paddingEnd="8dp"
+        android:elevation="8dp">
+
+        <!-- Artwork thumbnail -->
+        <ImageView
+            android:id="@+id/artwork"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_music_note"
+            android:background="#20FFFFFF" />
+
+        <!-- Title + Artist -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="8dp">
+
+            <TextView
+                android:id="@+id/title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Suno Play"
+                android:textColor="#FFFFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:focusable="true"
+                android:focusableInTouchMode="true" />
+
+            <TextView
+                android:id="@+id/artist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Toca una cancion"
+                android:textColor="#94A3B8"
+                android:textSize="12sp"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
+
+        <!-- Controls -->
+        <ImageButton
+            android:id="@+id/btn_prev"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_skip_previous"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:scaleType="centerInside"
+            android:contentDescription="Anterior" />
+
+        <ImageButton
+            android:id="@+id/btn_play_pause"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_play"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:scaleType="centerInside"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:contentDescription="Play/Pausa" />
+
+        <ImageButton
+            android:id="@+id/btn_next"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_skip_next"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:scaleType="centerInside"
+            android:contentDescription="Siguiente" />
+
+    </LinearLayout>
+
+</FrameLayout>

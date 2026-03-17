@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Suno Play</string>
+    <string name="notification_channel">Reproduccion</string>
+    <string name="browse_biblioteca">Biblioteca</string>
+    <string name="browse_generos">Generos</string>
+    <string name="browse_sorpresa">Sorpresa</string>
+</resources>

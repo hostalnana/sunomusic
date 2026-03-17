@@ -1,0 +1,47 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.chemadev.sunoplay'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.chemadev.sunoplay"
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("${rootProject.projectDir}/sunoplay.jks")
+            storePassword "SunoPlay2026"
+            keyAlias "sunoplay"
+            keyPassword "SunoPlay2026"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+        }
+        debug {
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.media:media:1.7.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+}

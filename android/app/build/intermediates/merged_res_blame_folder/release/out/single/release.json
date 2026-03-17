@@ -1,0 +1,42 @@
+[
+    {
+        "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/drawable_ic_skip_next.xml.flat",
+        "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/drawable/ic_skip_next.xml"
+    },
+    {
+        "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/drawable_ic_skip_previous.xml.flat",
+        "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/drawable/ic_skip_previous.xml"
+    },
+    {
+        "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/layout_activity_main.xml.flat",
+        "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/layout/activity_main.xml"
+    },
+    {
+        "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/drawable_ic_music_note.xml.flat",
+        "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/drawable/ic_music_note.xml"
+    },
+    {
+        "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/drawable_ic_pause.xml.flat",
+        "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/drawable/ic_pause.xml"
+    },
+    {
+        "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/xml_automotive_app_desc.xml.flat",
+        "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/xml/automotive_app_desc.xml"
+    },
+    {
+        "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/layout_item_song.xml.flat",
+        "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/layout/item_song.xml"
+    },
+    {
+        "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/drawable_ic_play.xml.flat",
+        "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/drawable/ic_play.xml"
+    },
+    {
+        "merged": "com.chemadev.sunoplay.app-merged_res-21:/layout_activity_main.xml.flat",
+        "source": "com.chemadev.sunoplay.app-main-22:/layout/activity_main.xml"
+    }
+]
