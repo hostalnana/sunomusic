@@ -1,11 +1,11 @@
 {
-    "name": "Suno Play by ChemaDev",
-    "short_name": "Suno Play",
-    "description": "Tu reproductor de musica impulsado por Suno AI. By ChemaDev.",
+    "name": "ChemPlay by ChemaDev",
+    "short_name": "ChemPlay",
+    "description": "Tu reproductor de musica premium. By ChemaDev.",
     "start_url": "/sunoplay/",
     "scope": "/sunoplay/",
     "id": "/sunoplay/",
-    "display": "standalone",
+    "display": "fullscreen",
     "background_color": "#050507",
     "theme_color": "#050507",
     "orientation": "portrait",
@@ -28,9 +28,25 @@
     "related_applications": [
         {
             "platform": "play",
-            "url": "https://app.lomastrend.com/sunoplay/sunoplay.apk",
+            "url": "https://app.lomastrend.com/sunoplay/sunoplay-v1.3.0.apk",
             "id": "com.chemadev.sunoplay"
         }
     ],
-    "prefer_related_applications": false
+    "prefer_related_applications": false,
+    "share_target": {
+        "action": "/sunoplay/share-receiver.html",
+        "method": "POST",
+        "enctype": "multipart/form-data",
+        "params": {
+            "title": "title",
+            "text": "text",
+            "url": "url",
+            "files": [
+                {
+                    "name": "audio",
+                    "accept": ["audio/*", ".mp3", ".m4a", ".ogg", ".wav", ".flac", ".aac", ".webm"]
+                }
+            ]
+        }
+    }
 }

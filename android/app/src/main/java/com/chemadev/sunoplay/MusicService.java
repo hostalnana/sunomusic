@@ -4,6 +4,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.media.AudioAttributes;
@@ -11,10 +12,12 @@ import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
@@ -28,42 +31,74 @@ import androidx.core.app.NotificationCompat;
 import androidx.media.MediaBrowserServiceCompat;
 import androidx.media.session.MediaButtonReceiver;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 public class MusicService extends MediaBrowserServiceCompat {
     private static final String TAG = "SunoPlayMusic";
     private static final String CHANNEL_ID = "sunoplay_playback";
     private static final int NOTIFICATION_ID = 1;
 
+    // Browse tree IDs
     private static final String ROOT_ID = "__ROOT__";
     private static final String BIBLIOTECA_ID = "__BIBLIOTECA__";
-    private static final String GENEROS_ID = "__GENEROS__";
+    private static final String TAGS_ID = "__TAGS__";
+    private static final String TOP_RATED_ID = "__TOP_RATED__";
     private static final String SORPRESA_ID = "__SORPRESA__";
-    private static final String GENRE_PREFIX = "__GENRE__";
+    private static final String TAG_PREFIX = "__TAG__";
+
+    // Custom action IDs for Android Auto
+    private static final String ACTION_LIKE = "com.chemadev.sunoplay.LIKE";
+    private static final String ACTION_DISLIKE = "com.chemadev.sunoplay.DISLIKE";
 
     private MediaSessionCompat mediaSession;
     private MediaPlayer mediaPlayer;
     private AudioManager audioManager;
     private AudioFocusRequest focusRequest;
     private Handler handler;
+    private WifiManager.WifiLock wifiLock;
 
     private ApiClient apiClient;
     private ArtworkLoader artworkLoader;
 
     private List<Song> library = null;
     private boolean isLoadingLibrary = false;
-    private Map<String, List<Song>> genreMap = new LinkedHashMap<>();
+    private Map<String, List<Song>> tagMap = new LinkedHashMap<>();
+    private Map<String, Integer> heartsMap = new HashMap<>();
+    private List<Song> topRated = new ArrayList<>();
     private List<Song> currentQueue = new ArrayList<>();
     private int currentIndex = -1;
     private boolean isPrepared = false;
     private Bitmap currentArtwork = null;
+    private boolean shuffleEnabled = false;
+    private int repeatMode = PlaybackStateCompat.REPEAT_MODE_NONE;
+    private boolean wasPlayingBeforeFocusLoss = false;
 
-    // Pending results for async library loading
+    // Next song cache for gapless playback
+    private MediaPlayer nextMediaPlayer = null;
+    private Song nextCachedSong = null;
+    private boolean nextPrepared = false;
+    private Bitmap nextArtwork = null;
+
+    // Position update runnable
+    private final Runnable positionUpdater = new Runnable() {
+        @Override
+        public void run() {
+            if (isPrepared && mediaPlayer != null && mediaPlayer.isPlaying()) {
+                updatePlaybackState(PlaybackStateCompat.STATE_PLAYING);
+                handler.postDelayed(this, 1000);
+            }
+        }
+    };
+
+    // Pending loads for async library
     private final List<PendingLoad> pendingLoads = new ArrayList<>();
 
     private static class PendingLoad {
@@ -83,15 +118,43 @@ public class MusicService extends MediaBrowserServiceCompat {
         artworkLoader = new ArtworkLoader();
         audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
 
+        // WiFi lock para mantener red activa durante streaming
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "ChemPlay:WifiLock");
+
         createNotificationChannel();
         initMediaSession();
         initMediaPlayer();
     }
 
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent == null) {
+            // Service recreated by system after being killed — nothing to handle
+            return START_STICKY;
+        }
+        if (intent.getAction() != null) {
+            switch (intent.getAction()) {
+                case ACTION_LIKE:
+                    handleHeartsAction(1);
+                    return START_STICKY;
+                case ACTION_DISLIKE:
+                    handleHeartsAction(-1);
+                    return START_STICKY;
+            }
+        }
+        try {
+            MediaButtonReceiver.handleIntent(mediaSession, intent);
+        } catch (Exception e) {
+            Log.w(TAG, "Error handling media button intent", e);
+        }
+        return START_STICKY;
+    }
+
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID, "Suno Play", NotificationManager.IMPORTANCE_LOW);
+                    CHANNEL_ID, "ChemPlay", NotificationManager.IMPORTANCE_LOW);
             channel.setDescription("Controles de reproduccion");
             NotificationManager nm = getSystemService(NotificationManager.class);
             if (nm != null) nm.createNotificationChannel(channel);
@@ -103,7 +166,8 @@ public class MusicService extends MediaBrowserServiceCompat {
         setSessionToken(mediaSession.getSessionToken());
         mediaSession.setFlags(
                 MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
-                MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+                        MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS |
+                        MediaSessionCompat.FLAG_HANDLES_QUEUE_COMMANDS);
         mediaSession.setCallback(new SessionCallback());
         mediaSession.setActive(true);
 
@@ -111,24 +175,60 @@ public class MusicService extends MediaBrowserServiceCompat {
     }
 
     private void initMediaPlayer() {
-        mediaPlayer = new MediaPlayer();
-        mediaPlayer.setAudioAttributes(new AudioAttributes.Builder()
+        mediaPlayer = createMediaPlayer();
+        setupMainPlayerListeners();
+    }
+
+    private MediaPlayer createMediaPlayer() {
+        MediaPlayer mp = new MediaPlayer();
+        mp.setAudioAttributes(new AudioAttributes.Builder()
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                 .setUsage(AudioAttributes.USAGE_MEDIA)
                 .build());
+        // WakeLock parcial: mantiene CPU activa con pantalla apagada
+        mp.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
+        return mp;
+    }
 
+    private void setupMainPlayerListeners() {
         mediaPlayer.setOnPreparedListener(mp -> {
             isPrepared = true;
             mp.start();
             updatePlaybackState(PlaybackStateCompat.STATE_PLAYING);
             updateNotification();
+            // Start position updates
+            handler.removeCallbacks(positionUpdater);
+            handler.postDelayed(positionUpdater, 1000);
+            // Update metadata with duration
+            updateMetadataWithDuration();
+            // Preload next song in background
+            preloadNextSong();
         });
 
-        mediaPlayer.setOnCompletionListener(mp -> skipToNext());
+        mediaPlayer.setOnCompletionListener(mp -> {
+            handler.removeCallbacks(positionUpdater);
+            // Notify WebView
+            mediaSession.sendSessionEvent("songComplete", null);
+
+            // +1 heart for completing a song (same behavior as PWA)
+            if (currentIndex >= 0 && currentIndex < currentQueue.size()) {
+                handleHeartsAction(1);
+            }
+
+            if (repeatMode == PlaybackStateCompat.REPEAT_MODE_ONE) {
+                playSong(currentQueue.get(currentIndex));
+            } else {
+                skipToNextWithCache();
+            }
+        });
 
         mediaPlayer.setOnErrorListener((mp, what, extra) -> {
             Log.e(TAG, "MediaPlayer error: " + what + "/" + extra);
             isPrepared = false;
+            handler.removeCallbacks(positionUpdater);
+            Bundle b = new Bundle();
+            b.putString("message", "Error de reproduccion (" + what + ")");
+            mediaSession.sendSessionEvent("error", b);
             handler.postDelayed(this::skipToNext, 500);
             return true;
         });
@@ -144,17 +244,12 @@ public class MusicService extends MediaBrowserServiceCompat {
 
     @Override
     public void onLoadChildren(@NonNull String parentId, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result) {
-        Log.d(TAG, "onLoadChildren parentId=" + parentId + " library=" + (library == null ? "null" : library.size()));
-
-        // ROOT_ID can be returned immediately - it's static
         if (ROOT_ID.equals(parentId)) {
             result.sendResult(buildChildren(parentId));
-            // Start loading library in background for later
             loadLibraryIfNeeded();
             return;
         }
 
-        // For other IDs, we need the library
         if (library == null) {
             result.detach();
             pendingLoads.add(new PendingLoad(parentId, result));
@@ -165,40 +260,92 @@ public class MusicService extends MediaBrowserServiceCompat {
         result.sendResult(buildChildren(parentId));
     }
 
+    @Override
+    public void onSearch(@NonNull String query, Bundle extras, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result) {
+        if (library == null) {
+            result.detach();
+            loadLibraryIfNeeded();
+            // Simple retry after library loads
+            handler.postDelayed(() -> {
+                if (library != null) {
+                    result.sendResult(searchLibrary(query));
+                } else {
+                    result.sendResult(new ArrayList<>());
+                }
+            }, 3000);
+            return;
+        }
+        result.sendResult(searchLibrary(query));
+    }
+
+    private List<MediaBrowserCompat.MediaItem> searchLibrary(String query) {
+        List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+        if (library == null || query == null) return items;
+
+        String q = query.toLowerCase().trim();
+        for (Song s : library) {
+            if ((s.title != null && s.title.toLowerCase().contains(q)) ||
+                    (s.artist != null && s.artist.toLowerCase().contains(q))) {
+                items.add(makePlayable(s.id, s.title, s.artist, s.thumbUrl));
+                if (items.size() >= 30) break;
+            }
+        }
+        return items;
+    }
+
     private void loadLibraryIfNeeded() {
         if (library != null || isLoadingLibrary) return;
         isLoadingLibrary = true;
-        Log.d(TAG, "Starting library fetch...");
 
         apiClient.fetchLibrary(songs -> {
             library = songs;
             isLoadingLibrary = false;
-            buildGenreMap();
-            Log.d(TAG, "Library loaded: " + songs.size() + " songs, " + genreMap.size() + " genres, " + pendingLoads.size() + " pending");
 
-            // Resolve all pending loads
-            List<PendingLoad> pending = new ArrayList<>(pendingLoads);
-            pendingLoads.clear();
-            for (PendingLoad pl : pending) {
-                try {
-                    List<MediaBrowserCompat.MediaItem> children = buildChildren(pl.parentId);
-                    Log.d(TAG, "Resolving pending " + pl.parentId + " with " + children.size() + " items");
-                    pl.result.sendResult(children);
-                } catch (Exception e) {
-                    Log.w(TAG, "Failed to send pending result for " + pl.parentId, e);
+            // Fetch user hearts and merge into library songs
+            apiClient.fetchHearts(hearts -> {
+                if (hearts != null && !hearts.isEmpty()) {
+                    heartsMap.putAll(hearts);
+                    // Apply hearts to library songs
+                    for (Song s : library) {
+                        if (heartsMap.containsKey(s.id)) {
+                            s.hearts = heartsMap.get(s.id);
+                        }
+                    }
                 }
-            }
+                buildMaps();
+
+                List<PendingLoad> pending = new ArrayList<>(pendingLoads);
+                pendingLoads.clear();
+                for (PendingLoad pl : pending) {
+                    try {
+                        pl.result.sendResult(buildChildren(pl.parentId));
+                    } catch (Exception e) {
+                        Log.w(TAG, "Failed to send pending result for " + pl.parentId, e);
+                    }
+                }
+            });
         });
     }
 
-    private void buildGenreMap() {
-        genreMap.clear();
+    private void buildMaps() {
+        tagMap.clear();
+        topRated.clear();
         if (library == null) return;
+
         for (Song song : library) {
-            String genre = song.genre;
-            if (genre != null && !genre.isEmpty()) {
-                genreMap.computeIfAbsent(genre, k -> new ArrayList<>()).add(song);
+            // Tag map — each tag points to list of songs
+            List<String> songTags = song.tags != null && !song.tags.isEmpty()
+                    ? song.tags : song.generateTags();
+            for (String tag : songTags) {
+                tagMap.computeIfAbsent(tag, k -> new ArrayList<>()).add(song);
             }
+        }
+
+        // Top rated: sort by hearts descending, take top 20
+        List<Song> sorted = new ArrayList<>(library);
+        Collections.sort(sorted, (a, b) -> b.hearts - a.hearts);
+        for (int i = 0; i < Math.min(sorted.size(), 20); i++) {
+            if (sorted.get(i).hearts > 0) topRated.add(sorted.get(i));
         }
     }
 
@@ -208,35 +355,57 @@ public class MusicService extends MediaBrowserServiceCompat {
         switch (parentId) {
             case ROOT_ID:
                 items.add(makeBrowsable(BIBLIOTECA_ID, "Biblioteca", "Tus canciones guardadas"));
-                items.add(makeBrowsable(GENEROS_ID, "Generos", "Explora por genero"));
+                items.add(makeBrowsable(TAGS_ID, "Etiquetas", "Filtra por etiquetas"));
+                items.add(makeBrowsable(TOP_RATED_ID, "Mas valoradas", "Tus favoritas"));
                 items.add(makePlayable(SORPRESA_ID, "Sorpresa", "Cancion aleatoria", null));
                 break;
 
             case BIBLIOTECA_ID:
                 if (library != null) {
-                    for (int i = 0; i < Math.min(library.size(), 100); i++) {
+                    for (int i = 0; i < Math.min(library.size(), 200); i++) {
                         Song s = library.get(i);
-                        items.add(makePlayable(s.id, s.title, s.artist, s.thumbUrl));
+                        String subtitle = s.artist;
+                        if (s.hearts != 0) subtitle += " | " + heartsString(s.hearts);
+                        items.add(makePlayable(s.id, s.title, subtitle, s.thumbUrl));
                     }
                 }
                 break;
 
-            case GENEROS_ID:
-                List<String> genres = new ArrayList<>(genreMap.keySet());
-                Collections.sort(genres);
-                for (String genre : genres) {
-                    int count = genreMap.get(genre).size();
-                    items.add(makeBrowsable(GENRE_PREFIX + genre, genre, count + " canciones"));
+            case TAGS_ID:
+                // Sort tags: source first, then genre, style, decade — each by count descending
+                List<Map.Entry<String, List<Song>>> tagEntries = new ArrayList<>(tagMap.entrySet());
+                Collections.sort(tagEntries, (a, b) -> {
+                    int orderA = getTagSortOrder(a.getKey());
+                    int orderB = getTagSortOrder(b.getKey());
+                    if (orderA != orderB) return orderA - orderB;
+                    return b.getValue().size() - a.getValue().size();
+                });
+                for (Map.Entry<String, List<Song>> entry : tagEntries) {
+                    String tag = entry.getKey();
+                    int count = entry.getValue().size();
+                    String icon = Song.getTagIcon(tag);
+                    items.add(makeBrowsable(TAG_PREFIX + tag, icon + " " + tag, count + " canciones"));
+                }
+                break;
+
+            case TOP_RATED_ID:
+                for (Song s : topRated) {
+                    String subtitle = s.artist + " | " + heartsString(s.hearts);
+                    items.add(makePlayable(s.id, s.title, subtitle, s.thumbUrl));
                 }
                 break;
 
             default:
-                if (parentId.startsWith(GENRE_PREFIX)) {
-                    String genre = parentId.substring(GENRE_PREFIX.length());
-                    List<Song> genreSongs = genreMap.get(genre);
-                    if (genreSongs != null) {
-                        for (Song s : genreSongs) {
-                            items.add(makePlayable(s.id, s.title, s.artist, s.thumbUrl));
+                if (parentId.startsWith(TAG_PREFIX)) {
+                    String tag = parentId.substring(TAG_PREFIX.length());
+                    List<Song> tagSongs = tagMap.get(tag);
+                    if (tagSongs != null) {
+                        // Sort by hearts descending
+                        List<Song> sorted = new ArrayList<>(tagSongs);
+                        Collections.sort(sorted, (a, b) -> b.hearts - a.hearts);
+                        for (Song s : sorted) {
+                            String subtitle = s.artist + " | " + heartsString(s.hearts);
+                            items.add(makePlayable(s.id, s.title, subtitle, s.thumbUrl));
                         }
                     }
                 }
@@ -244,6 +413,23 @@ public class MusicService extends MediaBrowserServiceCompat {
         }
 
         return items;
+    }
+
+    private int getTagSortOrder(String tag) {
+        String type = Song.getTagType(tag);
+        switch (type) {
+            case "source": return 0;
+            case "genre": return 1;
+            case "style": return 2;
+            case "decade": return 3;
+            default: return 4;
+        }
+    }
+
+    private String heartsString(int hearts) {
+        if (hearts > 0) return "\u2665 " + hearts;
+        if (hearts < 0) return "\u2661 " + hearts;
+        return "";
     }
 
     private MediaBrowserCompat.MediaItem makeBrowsable(String id, String title, String subtitle) {
@@ -266,49 +452,262 @@ public class MusicService extends MediaBrowserServiceCompat {
         return new MediaBrowserCompat.MediaItem(b.build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE);
     }
 
+    private void updateQueue() {
+        List<MediaSessionCompat.QueueItem> queueItems = new ArrayList<>();
+        for (int i = 0; i < Math.min(currentQueue.size(), 100); i++) {
+            Song s = currentQueue.get(i);
+            MediaDescriptionCompat desc = new MediaDescriptionCompat.Builder()
+                    .setMediaId(s.id)
+                    .setTitle(s.title)
+                    .setSubtitle(s.artist)
+                    .build();
+            queueItems.add(new MediaSessionCompat.QueueItem(desc, i));
+        }
+        mediaSession.setQueue(queueItems);
+        mediaSession.setQueueTitle("ChemPlay");
+    }
+
     // === Playback ===
 
     private void playSong(Song song) {
+        if (song == null) return;
+
+        // Always request audio focus and ensure foreground service
+        requestAudioFocus();
+
+        // Check if this song is already cached in nextMediaPlayer
+        if (nextPrepared && nextCachedSong != null && nextCachedSong.id.equals(song.id)) {
+            Log.d(TAG, "Using cached player for: " + song.title);
+            useCachedPlayer(song);
+            return;
+        }
+
+        // Normal path: reset and prepare
         isPrepared = false;
         currentArtwork = null;
+        handler.removeCallbacks(positionUpdater);
+        releaseNextPlayer();
 
         try {
             mediaPlayer.reset();
+            setupMainPlayerListeners();
             mediaPlayer.setDataSource(song.audioUrl);
             mediaPlayer.prepareAsync();
 
-            // Update metadata immediately (without artwork)
+            // Update metadata immediately (without artwork or duration)
             mediaSession.setMetadata(song.toMediaMetadata());
             updatePlaybackState(PlaybackStateCompat.STATE_BUFFERING);
             updateNotification();
 
             // Load artwork async
-            artworkLoader.load(song.thumbUrl, bitmap -> {
-                currentArtwork = bitmap;
-                if (bitmap != null) {
-                    MediaMetadataCompat meta = new MediaMetadataCompat.Builder()
-                            .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, song.id)
-                            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, song.title)
-                            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.artist)
-                            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, song.genre != null ? song.genre : "Suno Play")
-                            .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
-                            .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, song.audioUrl)
-                            .build();
-                    mediaSession.setMetadata(meta);
-                    updateNotification();
-                }
-            });
+            loadArtworkForSong(song, true);
 
         } catch (Exception e) {
             Log.e(TAG, "Error playing song: " + song.title, e);
+            Bundle b = new Bundle();
+            b.putString("message", "Error: " + e.getMessage());
+            mediaSession.sendSessionEvent("error", b);
             handler.postDelayed(this::skipToNext, 500);
         }
     }
 
+    /** Swap in the cached next player as the current player — instant start, no buffering */
+    private void useCachedPlayer(Song song) {
+        handler.removeCallbacks(positionUpdater);
+
+        // Release current player
+        try { mediaPlayer.reset(); } catch (Exception ignored) {}
+        try { mediaPlayer.release(); } catch (Exception ignored) {}
+
+        // Swap
+        mediaPlayer = nextMediaPlayer;
+        nextMediaPlayer = null;
+        nextCachedSong = null;
+        nextPrepared = false;
+
+        // Set up listeners on the swapped player
+        isPrepared = true;
+        currentArtwork = nextArtwork;
+        nextArtwork = null;
+
+        setupMainPlayerListeners();
+        mediaPlayer.start();
+
+        updatePlaybackState(PlaybackStateCompat.STATE_PLAYING);
+        mediaSession.setMetadata(song.toMediaMetadata());
+        updateMetadataWithDuration();
+        updateNotification();
+
+        handler.removeCallbacks(positionUpdater);
+        handler.postDelayed(positionUpdater, 1000);
+
+        // Update artwork if cached
+        if (currentArtwork != null) {
+            updateMetadataWithArtwork(song, currentArtwork);
+        } else {
+            loadArtworkForSong(song, true);
+        }
+
+        // Preload the NEXT next song
+        preloadNextSong();
+    }
+
+    /** Preload the next song in the queue in background */
+    private void preloadNextSong() {
+        releaseNextPlayer();
+
+        if (currentQueue.isEmpty() || currentIndex < 0) return;
+
+        int nextIdx = currentIndex + 1;
+        if (nextIdx >= currentQueue.size()) {
+            if (repeatMode == PlaybackStateCompat.REPEAT_MODE_ALL) {
+                nextIdx = 0;
+            } else {
+                return; // No next song
+            }
+        }
+
+        Song next = currentQueue.get(nextIdx);
+        if (next.audioUrl == null || next.audioUrl.isEmpty()) return;
+
+        Log.d(TAG, "Preloading next: " + next.title);
+        nextCachedSong = next;
+
+        try {
+            nextMediaPlayer = createMediaPlayer();
+            nextMediaPlayer.setDataSource(next.audioUrl);
+
+            nextMediaPlayer.setOnPreparedListener(mp -> {
+                nextPrepared = true;
+                Log.d(TAG, "Next song cached OK: " + next.title);
+            });
+
+            nextMediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                Log.w(TAG, "Error preloading next song: " + what);
+                releaseNextPlayer();
+                return true;
+            });
+
+            nextMediaPlayer.prepareAsync();
+
+            // Also preload artwork for next song
+            artworkLoader.load(next.thumbUrl, bitmap -> {
+                if (nextCachedSong != null && nextCachedSong.id.equals(next.id)) {
+                    nextArtwork = bitmap;
+                }
+            });
+
+        } catch (Exception e) {
+            Log.w(TAG, "Error setting up preload for: " + next.title, e);
+            releaseNextPlayer();
+        }
+    }
+
+    /** Release and clear the cached next player */
+    private void releaseNextPlayer() {
+        if (nextMediaPlayer != null) {
+            try {
+                nextMediaPlayer.reset();
+                nextMediaPlayer.release();
+            } catch (Exception ignored) {}
+            nextMediaPlayer = null;
+        }
+        nextCachedSong = null;
+        nextPrepared = false;
+        nextArtwork = null;
+    }
+
+    private void loadArtworkForSong(Song song, boolean isCurrentSong) {
+        artworkLoader.load(song.thumbUrl, bitmap -> {
+            if (isCurrentSong) {
+                currentArtwork = bitmap;
+                if (bitmap != null) {
+                    updateMetadataWithArtwork(song, bitmap);
+                    updateNotification();
+                }
+            }
+        });
+    }
+
+    private void updateMetadataWithArtwork(Song song, Bitmap bitmap) {
+        MediaMetadataCompat.Builder metaBuilder = new MediaMetadataCompat.Builder()
+                .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, song.id)
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, song.title)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.artist)
+                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, song.genre != null ? song.genre : "ChemPlay")
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
+                .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, song.thumbUrl)
+                .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, song.audioUrl);
+        if (isPrepared) {
+            metaBuilder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, mediaPlayer.getDuration());
+        }
+        mediaSession.setMetadata(metaBuilder.build());
+    }
+
+    private void updateMetadataWithDuration() {
+        if (!isPrepared || currentQueue.isEmpty() || currentIndex < 0) return;
+        Song song = currentQueue.get(currentIndex);
+
+        MediaMetadataCompat.Builder metaBuilder = new MediaMetadataCompat.Builder()
+                .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, song.id)
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, song.title)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.artist)
+                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, song.genre != null ? song.genre : "ChemPlay")
+                .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, song.audioUrl)
+                .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, song.thumbUrl != null ? song.thumbUrl : "")
+                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, mediaPlayer.getDuration());
+
+        if (currentArtwork != null) {
+            metaBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, currentArtwork);
+        }
+
+        mediaSession.setMetadata(metaBuilder.build());
+    }
+
     private void skipToNext() {
         if (currentQueue.isEmpty()) return;
-        currentIndex = (currentIndex + 1) % currentQueue.size();
-        playSong(currentQueue.get(currentIndex));
+        if (repeatMode == PlaybackStateCompat.REPEAT_MODE_ONE) {
+            playSong(currentQueue.get(currentIndex));
+        } else {
+            int nextIdx = currentIndex + 1;
+            if (nextIdx >= currentQueue.size()) {
+                if (repeatMode == PlaybackStateCompat.REPEAT_MODE_ALL) {
+                    nextIdx = 0;
+                } else {
+                    updatePlaybackState(PlaybackStateCompat.STATE_PAUSED);
+                    updateNotification();
+                    return;
+                }
+            }
+            currentIndex = nextIdx;
+            playSong(currentQueue.get(currentIndex));
+        }
+    }
+
+    /** Skip to next using cache — called on natural song completion */
+    private void skipToNextWithCache() {
+        if (currentQueue.isEmpty()) return;
+
+        int nextIdx = currentIndex + 1;
+        if (nextIdx >= currentQueue.size()) {
+            if (repeatMode == PlaybackStateCompat.REPEAT_MODE_ALL) {
+                nextIdx = 0;
+            } else {
+                updatePlaybackState(PlaybackStateCompat.STATE_PAUSED);
+                updateNotification();
+                return;
+            }
+        }
+        currentIndex = nextIdx;
+        Song nextSong = currentQueue.get(currentIndex);
+
+        // If next song is cached, use it for instant playback
+        if (nextPrepared && nextCachedSong != null && nextCachedSong.id.equals(nextSong.id)) {
+            Log.d(TAG, "Instant skip using cached player: " + nextSong.title);
+            useCachedPlayer(nextSong);
+        } else {
+            playSong(nextSong);
+        }
     }
 
     private void skipToPrevious() {
@@ -341,12 +740,28 @@ public class MusicService extends MediaBrowserServiceCompat {
                     .build();
             audioManager.requestAudioFocus(focusRequest);
         }
+        // Mantener WiFi activo para streaming
+        if (wifiLock != null && !wifiLock.isHeld()) {
+            wifiLock.acquire();
+        }
     }
 
     private void onAudioFocusChange(int focusChange) {
+        if (mediaPlayer == null) return;
         switch (focusChange) {
             case AudioManager.AUDIOFOCUS_LOSS:
+                // Perdida permanente (otra app tomó el audio)
+                wasPlayingBeforeFocusLoss = false;
+                if (mediaPlayer.isPlaying()) {
+                    mediaPlayer.pause();
+                    updatePlaybackState(PlaybackStateCompat.STATE_PAUSED);
+                    updateNotification();
+                }
+                if (wifiLock != null && wifiLock.isHeld()) wifiLock.release();
+                break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                // Perdida temporal (llamada, notificación) — recordar estado para reanudar
+                wasPlayingBeforeFocusLoss = isPrepared && mediaPlayer.isPlaying();
                 if (mediaPlayer.isPlaying()) {
                     mediaPlayer.pause();
                     updatePlaybackState(PlaybackStateCompat.STATE_PAUSED);
@@ -358,6 +773,19 @@ public class MusicService extends MediaBrowserServiceCompat {
                 break;
             case AudioManager.AUDIOFOCUS_GAIN:
                 mediaPlayer.setVolume(1.0f, 1.0f);
+                // Reanudar reproducción si estaba sonando antes de la pérdida transitoria
+                if (wasPlayingBeforeFocusLoss && isPrepared && !mediaPlayer.isPlaying()) {
+                    mediaPlayer.start();
+                    updatePlaybackState(PlaybackStateCompat.STATE_PLAYING);
+                    updateNotification();
+                    handler.removeCallbacks(positionUpdater);
+                    handler.postDelayed(positionUpdater, 1000);
+                }
+                wasPlayingBeforeFocusLoss = false;
+                // Recuperar WiFi lock si es necesario
+                if (wifiLock != null && !wifiLock.isHeld() && isPrepared) {
+                    wifiLock.acquire();
+                }
                 break;
         }
     }
@@ -372,19 +800,33 @@ public class MusicService extends MediaBrowserServiceCompat {
             speed = state == PlaybackStateCompat.STATE_PLAYING ? 1.0f : 0f;
         }
 
-        PlaybackStateCompat psc = new PlaybackStateCompat.Builder()
-                .setActions(
-                        PlaybackStateCompat.ACTION_PLAY |
-                        PlaybackStateCompat.ACTION_PAUSE |
-                        PlaybackStateCompat.ACTION_PLAY_PAUSE |
-                        PlaybackStateCompat.ACTION_STOP |
-                        PlaybackStateCompat.ACTION_SKIP_TO_NEXT |
-                        PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
-                        PlaybackStateCompat.ACTION_SEEK_TO)
-                .setState(state, position, speed)
-                .build();
+        long actions = PlaybackStateCompat.ACTION_PLAY
+                | PlaybackStateCompat.ACTION_PAUSE
+                | PlaybackStateCompat.ACTION_PLAY_PAUSE
+                | PlaybackStateCompat.ACTION_STOP
+                | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
+                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+                | PlaybackStateCompat.ACTION_SEEK_TO
+                | PlaybackStateCompat.ACTION_SET_SHUFFLE_MODE
+                | PlaybackStateCompat.ACTION_SET_REPEAT_MODE
+                | PlaybackStateCompat.ACTION_SKIP_TO_QUEUE_ITEM
+                | PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH;
 
-        mediaSession.setPlaybackState(psc);
+        PlaybackStateCompat.Builder builder = new PlaybackStateCompat.Builder()
+                .setActions(actions)
+                .setState(state, position, speed);
+
+        // Custom actions: Like and Dislike for Android Auto
+        builder.addCustomAction(new PlaybackStateCompat.CustomAction.Builder(
+                ACTION_LIKE, "Me gusta", R.drawable.ic_heart).build());
+        builder.addCustomAction(new PlaybackStateCompat.CustomAction.Builder(
+                ACTION_DISLIKE, "No me gusta", R.drawable.ic_heart_broken).build());
+
+        mediaSession.setPlaybackState(builder.build());
+        mediaSession.setShuffleMode(shuffleEnabled
+                ? PlaybackStateCompat.SHUFFLE_MODE_ALL
+                : PlaybackStateCompat.SHUFFLE_MODE_NONE);
+        mediaSession.setRepeatMode(repeatMode);
     }
 
     private void updateNotification() {
@@ -398,26 +840,37 @@ public class MusicService extends MediaBrowserServiceCompat {
 
         boolean isPlaying = isPrepared && mediaPlayer.isPlaying();
 
+        // Notification: [Like] [Prev] [Play/Pause] [Next] [Dislike]
+        // Compact view shows indices 1,2,3 (Prev, Play/Pause, Next)
         androidx.media.app.NotificationCompat.MediaStyle mediaStyle =
                 new androidx.media.app.NotificationCompat.MediaStyle()
                         .setMediaSession(mediaSession.getSessionToken())
-                        .setShowActionsInCompactView(0, 1, 2);
+                        .setShowActionsInCompactView(1, 2, 3);
+
+        // Hearts subtitle
+        String subtitle = song.artist;
+        if (song.hearts != 0) subtitle += " | " + heartsString(song.hearts);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle(song.title)
-                .setContentText(song.artist)
+                .setContentText(subtitle)
+                .setSubText(song.genre)
                 .setSmallIcon(R.drawable.ic_music_note)
                 .setContentIntent(contentIntent)
                 .setStyle(mediaStyle)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setOngoing(isPlaying)
+                .addAction(R.drawable.ic_heart, "Me gusta",
+                        buildCustomActionIntent(ACTION_LIKE))           // 0
                 .addAction(R.drawable.ic_skip_previous, "Anterior",
-                        MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS))
+                        MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS))  // 1
                 .addAction(isPlaying ? R.drawable.ic_pause : R.drawable.ic_play,
                         isPlaying ? "Pausa" : "Play",
-                        MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_PLAY_PAUSE))
+                        MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_PLAY_PAUSE))  // 2
                 .addAction(R.drawable.ic_skip_next, "Siguiente",
-                        MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_NEXT));
+                        MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_NEXT))  // 3
+                .addAction(R.drawable.ic_heart_broken, "No me gusta",
+                        buildCustomActionIntent(ACTION_DISLIKE));        // 4
 
         if (currentArtwork != null) {
             builder.setLargeIcon(currentArtwork);
@@ -425,33 +878,46 @@ public class MusicService extends MediaBrowserServiceCompat {
 
         Notification notification = builder.build();
 
-        if (isPlaying) {
-            startForeground(NOTIFICATION_ID, notification);
-        } else {
-            stopForeground(false);
-            NotificationManager nm = getSystemService(NotificationManager.class);
-            if (nm != null) nm.notify(NOTIFICATION_ID, notification);
+        // Always keep as foreground service so lock screen controls stay functional.
+        // On Android 12+, stopForeground kills the service and notification buttons stop working.
+        startForeground(NOTIFICATION_ID, notification);
+    }
+
+    private PendingIntent buildCustomActionIntent(String action) {
+        Intent intent = new Intent(this, MusicService.class);
+        intent.setAction(action);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            return PendingIntent.getForegroundService(this, action.hashCode(), intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         }
+        return PendingIntent.getService(this, action.hashCode(), intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
     // === MediaSession callbacks ===
 
     private class SessionCallback extends MediaSessionCompat.Callback {
+
         @Override
         public void onPlay() {
             if (isPrepared && !mediaPlayer.isPlaying()) {
+                // Simple resume from pause
                 requestAudioFocus();
                 mediaPlayer.start();
                 updatePlaybackState(PlaybackStateCompat.STATE_PLAYING);
                 updateNotification();
-            } else if (!isPrepared && !currentQueue.isEmpty()) {
+                handler.removeCallbacks(positionUpdater);
+                handler.postDelayed(positionUpdater, 1000);
+            } else if (!isPrepared && !currentQueue.isEmpty() && currentIndex >= 0) {
+                // Player lost state (error/stopped) — re-play current song
                 requestAudioFocus();
-                playSong(currentQueue.get(Math.max(0, currentIndex)));
-            } else if (currentQueue.isEmpty() && library != null && !library.isEmpty()) {
-                // Start playing library from the beginning
+                playSong(currentQueue.get(Math.min(currentIndex, currentQueue.size() - 1)));
+            } else if (!isPrepared && currentQueue.isEmpty() && library != null && !library.isEmpty()) {
+                // No queue at all — build one from library and start
                 currentQueue = new ArrayList<>(library);
-                Collections.shuffle(currentQueue);
+                if (shuffleEnabled) Collections.shuffle(currentQueue);
                 currentIndex = 0;
+                updateQueue();
                 requestAudioFocus();
                 playSong(currentQueue.get(0));
             }
@@ -462,6 +928,7 @@ public class MusicService extends MediaBrowserServiceCompat {
             if (mediaPlayer.isPlaying()) {
                 mediaPlayer.pause();
             }
+            handler.removeCallbacks(positionUpdater);
             updatePlaybackState(PlaybackStateCompat.STATE_PAUSED);
             updateNotification();
         }
@@ -470,8 +937,19 @@ public class MusicService extends MediaBrowserServiceCompat {
         public void onStop() {
             mediaPlayer.stop();
             isPrepared = false;
+            handler.removeCallbacks(positionUpdater);
+            releaseNextPlayer();
             updatePlaybackState(PlaybackStateCompat.STATE_STOPPED);
-            stopForeground(true);
+            // Liberar WiFi lock
+            if (wifiLock != null && wifiLock.isHeld()) {
+                wifiLock.release();
+            }
+            // Only remove foreground + notification on explicit stop
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE);
+            } else {
+                stopForeground(true);
+            }
         }
 
         @Override
@@ -494,7 +972,41 @@ public class MusicService extends MediaBrowserServiceCompat {
         }
 
         @Override
+        public void onSetShuffleMode(int shuffleMode) {
+            shuffleEnabled = (shuffleMode == PlaybackStateCompat.SHUFFLE_MODE_ALL
+                    || shuffleMode == PlaybackStateCompat.SHUFFLE_MODE_GROUP);
+            if (shuffleEnabled && !currentQueue.isEmpty()) {
+                Song current = (currentIndex >= 0 && currentIndex < currentQueue.size())
+                        ? currentQueue.get(currentIndex) : null;
+                Collections.shuffle(currentQueue);
+                if (current != null) {
+                    currentIndex = currentQueue.indexOf(current);
+                    if (currentIndex < 0) currentIndex = 0;
+                }
+            }
+            // Queue order changed — invalidate cache and preload correct next song
+            releaseNextPlayer();
+            if (isPrepared) preloadNextSong();
+            updatePlaybackState(isPrepared && mediaPlayer.isPlaying()
+                    ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED);
+        }
+
+        @Override
+        public void onSetRepeatMode(int mode) {
+            repeatMode = mode;
+            updatePlaybackState(isPrepared && mediaPlayer.isPlaying()
+                    ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED);
+        }
+
+        @Override
         public void onPlayFromMediaId(String mediaId, Bundle extras) {
+            // Bridge play from WebView
+            if ("__BRIDGE_PLAY__".equals(mediaId) && extras != null) {
+                String songJson = extras.getString("songJson", "");
+                handleBridgePlay(songJson);
+                return;
+            }
+
             if (SORPRESA_ID.equals(mediaId)) {
                 handleSurprise();
                 return;
@@ -502,7 +1014,6 @@ public class MusicService extends MediaBrowserServiceCompat {
 
             Song song = findSongById(mediaId);
             if (song != null) {
-                // Build queue: all songs from same context, starting from this one
                 List<Song> queue;
                 if (library != null && library.contains(song)) {
                     queue = new ArrayList<>(library);
@@ -510,35 +1021,150 @@ public class MusicService extends MediaBrowserServiceCompat {
                     queue = new ArrayList<>();
                     queue.add(song);
                 }
-
+                if (shuffleEnabled) {
+                    Song target = song;
+                    Collections.shuffle(queue);
+                    // Move target to front
+                    queue.remove(target);
+                    queue.add(0, target);
+                }
                 currentQueue = queue;
-                currentIndex = queue.indexOf(song);
+                currentIndex = currentQueue.indexOf(song);
                 if (currentIndex < 0) currentIndex = 0;
 
+                updateQueue();
                 requestAudioFocus();
                 playSong(song);
             }
+        }
+
+        @Override
+        public void onPlayFromSearch(String query, Bundle extras) {
+            handleVoiceSearch(query, extras);
+        }
+
+        @Override
+        public void onCustomAction(String action, Bundle extras) {
+            switch (action) {
+                case ACTION_LIKE:
+                    handleHeartsAction(1);
+                    break;
+                case ACTION_DISLIKE:
+                    handleHeartsAction(-1);
+                    break;
+                case "SET_VOLUME":
+                    if (extras != null) {
+                        float vol = extras.getFloat("volume", 1.0f);
+                        if (mediaPlayer != null) mediaPlayer.setVolume(vol, vol);
+                    }
+                    break;
+                case "SET_QUEUE":
+                    if (extras != null) {
+                        String queueJson = extras.getString("queueJson", "[]");
+                        handleSetQueue(queueJson);
+                    }
+                    break;
+                case "SET_AUTH_TOKEN":
+                    if (extras != null) {
+                        String token = extras.getString("authToken", "");
+                        if (!token.isEmpty() && apiClient != null) {
+                            apiClient.setAuthToken(token);
+                            Log.d(TAG, "Auth token set from bridge");
+                        }
+                    }
+                    break;
+            }
+        }
+
+        @Override
+        public void onSkipToQueueItem(long id) {
+            int index = (int) id;
+            if (index >= 0 && index < currentQueue.size()) {
+                currentIndex = index;
+                requestAudioFocus();
+                playSong(currentQueue.get(currentIndex));
+            }
+        }
+    }
+
+    private void handleBridgePlay(String songJson) {
+        try {
+            JSONObject json = new JSONObject(songJson);
+            Song song = Song.fromJson(json);
+            if (song.audioUrl.isEmpty()) return;
+
+            // Build queue: if song is in library, use library as queue
+            List<Song> queue;
+            Song libSong = findSongById(song.id);
+            if (libSong != null && library != null) {
+                queue = new ArrayList<>(library);
+                song = libSong; // Use library version with full metadata
+            } else {
+                queue = new ArrayList<>();
+                queue.add(song);
+                // Also add library songs after
+                if (library != null) {
+                    for (Song s : library) {
+                        if (!s.id.equals(song.id)) queue.add(s);
+                    }
+                }
+            }
+
+            currentQueue = queue;
+            currentIndex = currentQueue.indexOf(song);
+            if (currentIndex < 0) currentIndex = 0;
+
+            updateQueue();
+            requestAudioFocus();
+            playSong(song);
+        } catch (Exception e) {
+            Log.e(TAG, "Error parsing bridge play JSON", e);
+        }
+    }
+
+    private void handleSetQueue(String queueJson) {
+        try {
+            JSONArray arr = new JSONArray(queueJson);
+            List<Song> queue = new ArrayList<>();
+            for (int i = 0; i < arr.length(); i++) {
+                Song s = Song.fromJson(arr.getJSONObject(i));
+                if (!s.audioUrl.isEmpty()) queue.add(s);
+            }
+            if (!queue.isEmpty()) {
+                // Keep current song if playing
+                Song currentSong = (currentIndex >= 0 && currentIndex < currentQueue.size())
+                        ? currentQueue.get(currentIndex) : null;
+
+                currentQueue = queue;
+                if (currentSong != null) {
+                    currentIndex = currentQueue.indexOf(currentSong);
+                    if (currentIndex < 0) currentIndex = 0;
+                }
+                updateQueue();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error parsing queue JSON", e);
         }
     }
 
     private void handleSurprise() {
         updatePlaybackState(PlaybackStateCompat.STATE_BUFFERING);
 
-        // If library is loaded, pick random from it
         if (library != null && !library.isEmpty()) {
             currentQueue = new ArrayList<>(library);
             Collections.shuffle(currentQueue);
             currentIndex = 0;
+            updateQueue();
             requestAudioFocus();
             playSong(currentQueue.get(0));
             return;
         }
 
-        // Otherwise fetch from API
         apiClient.fetchSurprise(songs -> {
             if (!songs.isEmpty()) {
                 currentQueue = songs;
                 currentIndex = 0;
+                updateQueue();
                 requestAudioFocus();
                 playSong(songs.get(0));
             } else {
@@ -547,16 +1173,116 @@ public class MusicService extends MediaBrowserServiceCompat {
         });
     }
 
+    // === Hearts (Like/Dislike) ===
+
+    private void handleHeartsAction(int delta) {
+        if (currentIndex < 0 || currentIndex >= currentQueue.size()) return;
+        Song song = currentQueue.get(currentIndex);
+
+        song.hearts += delta;
+        heartsMap.put(song.id, song.hearts);
+        Log.d(TAG, "Hearts " + (delta > 0 ? "+" : "") + delta + " for " + song.title + " → " + song.hearts);
+
+        // Update metadata to reflect new hearts in subtitle
+        updateMetadataWithDuration();
+        updateNotification();
+
+        // Persist to server
+        apiClient.saveHearts(song.id, song.hearts, success -> {
+            if (success) {
+                Log.d(TAG, "Hearts saved OK for " + song.id);
+            } else {
+                Log.w(TAG, "Hearts save FAILED for " + song.id);
+            }
+        });
+    }
+
+    // === Voice Search ===
+
+    private void handleVoiceSearch(String query, Bundle extras) {
+        Log.d(TAG, "Voice search: \"" + query + "\"");
+
+        // Empty query → shuffle library
+        if (query == null || query.trim().isEmpty()) {
+            handleSurprise();
+            return;
+        }
+
+        // Wait for library if not loaded
+        if (library == null) {
+            loadLibraryIfNeeded();
+            String finalQuery = query;
+            handler.postDelayed(() -> handleVoiceSearch(finalQuery, extras), 2000);
+            return;
+        }
+
+        String q = query.toLowerCase().trim();
+        List<Song> results = new ArrayList<>();
+
+        // 1. Search by title/artist match
+        for (Song s : library) {
+            if ((s.title != null && s.title.toLowerCase().contains(q)) ||
+                    (s.artist != null && s.artist.toLowerCase().contains(q))) {
+                results.add(s);
+            }
+        }
+
+        // 2. If no results, try matching tags
+        if (results.isEmpty()) {
+            for (Map.Entry<String, List<Song>> entry : tagMap.entrySet()) {
+                if (entry.getKey().toLowerCase().contains(q)) {
+                    results.addAll(entry.getValue());
+                }
+            }
+        }
+
+        // 3. If still no results, try genre field
+        if (results.isEmpty()) {
+            for (Song s : library) {
+                if (s.genre != null && s.genre.toLowerCase().contains(q)) {
+                    results.add(s);
+                }
+            }
+        }
+
+        if (results.isEmpty()) {
+            // Nothing found — play surprise
+            Log.d(TAG, "Voice search no results, playing surprise");
+            handleSurprise();
+            return;
+        }
+
+        // Remove duplicates
+        List<Song> unique = new ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (Song s : results) {
+            if (seen.add(s.id)) unique.add(s);
+        }
+
+        currentQueue = unique;
+        if (shuffleEnabled) Collections.shuffle(currentQueue);
+        currentIndex = 0;
+        updateQueue();
+        requestAudioFocus();
+        playSong(currentQueue.get(0));
+        Log.d(TAG, "Voice search playing " + unique.size() + " results for \"" + query + "\"");
+    }
+
     @Override
     public void onDestroy() {
+        handler.removeCallbacks(positionUpdater);
         mediaSession.setActive(false);
         mediaSession.release();
+        releaseNextPlayer();
         if (mediaPlayer != null) {
             mediaPlayer.release();
             mediaPlayer = null;
         }
         if (focusRequest != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             audioManager.abandonAudioFocusRequest(focusRequest);
+        }
+        if (wifiLock != null && wifiLock.isHeld()) {
+            wifiLock.release();
         }
         super.onDestroy();
     }

@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:2:1-46:12
-INJECTED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:2:1-46:12
-INJECTED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:2:1-46:12
-INJECTED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:2:1-46:12
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:2:1-65:12
+INJECTED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:2:1-65:12
+INJECTED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:2:1-65:12
+INJECTED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:2:1-65:12
 MERGED from [androidx.appcompat:appcompat-resources:1.6.1] /home/chemazener/.gradle/caches/transforms-3/68b491ffcc6cd52d6dfc071349a68223/transformed/appcompat-resources-1.6.1/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.appcompat:appcompat:1.6.1] /home/chemazener/.gradle/caches/transforms-3/1269e761ba2b2764df14d796e474c793/transformed/appcompat-1.6.1/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.media:media:1.7.0] /home/chemazener/.gradle/caches/transforms-3/8a98f087a10ce00daf44b0cadd23267e/transformed/media-1.7.0/AndroidManifest.xml:2:1-7:12
@@ -62,8 +62,8 @@ ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifes
 	android:name
 		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:8:22-74
 application
-ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:10:5-44:19
-INJECTED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:10:5-44:19
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:10:5-63:19
+INJECTED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:10:5-63:19
 MERGED from [androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:23:5-33:19
 MERGED from [androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:23:5-33:19
 MERGED from [androidx.core:core:1.9.0] /home/chemazener/.gradle/caches/transforms-3/75919e89ab9acfe92b320b18b5eba894/transformed/core-1.9.0/AndroidManifest.xml:28:5-89
@@ -89,7 +89,7 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] /home/chemazener/.gradle/ca
 	android:usesCleartextTraffic
 		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:15:9-45
 activity#com.chemadev.sunoplay.MainActivity
-ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:18:9-27:20
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:18:9-46:20
 	android:launchMode
 		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:22:13-44
 	android:exported
@@ -108,26 +108,56 @@ category#android.intent.category.LAUNCHER
 ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:25:17-77
 	android:name
 		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:25:27-74
+intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:host:auth+data:scheme:sunoplay
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:28:13-33:29
+action#android.intent.action.VIEW
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:29:17-69
+	android:name
+		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:29:25-66
+category#android.intent.category.DEFAULT
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:30:17-76
+	android:name
+		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:30:27-73
+category#android.intent.category.BROWSABLE
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:31:17-78
+	android:name
+		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:31:27-75
+data
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:32:17-71
+	android:host
+		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:32:49-68
+	android:scheme
+		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:32:23-48
+	android:mimeType
+		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:38:23-49
+intent-filter#action:name:android.intent.action.SEND+category:name:android.intent.category.DEFAULT+data:mimeType:audio/*
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:35:13-39:29
+action#android.intent.action.SEND
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:36:17-69
+	android:name
+		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:36:25-66
+intent-filter#action:name:android.intent.action.SEND+category:name:android.intent.category.DEFAULT+data:mimeType:text/plain
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:41:13-45:29
 service#com.chemadev.sunoplay.MusicService
-ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:30:9-37:19
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:49:9-56:19
 	android:exported
-		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:32:13-36
+		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:51:13-36
 	android:foregroundServiceType
-		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:33:13-58
+		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:52:13-58
 	android:name
-		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:31:13-41
+		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:50:13-41
 intent-filter#action:name:android.media.browse.MediaBrowserService
-ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:34:13-36:29
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:53:13-55:29
 action#android.media.browse.MediaBrowserService
-ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:35:17-83
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:54:17-83
 	android:name
-		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:35:25-80
+		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:54:25-80
 meta-data#com.google.android.gms.car.application
-ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:40:9-42:59
+ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:59:9-61:59
 	android:resource
-		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:42:13-56
+		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:61:13-56
 	android:name
-		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:41:13-66
+		ADDED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:60:13-66
 uses-sdk
 INJECTED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml

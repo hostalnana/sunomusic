@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Suno Play by ChemaDev</title>
+    <title>ChemPlay by ChemaDev</title>
     <meta name="description" content="Tu reproductor de musica premium con IA.">
-    <link rel="stylesheet" href="styles.css?v=34">
+    <link rel="stylesheet" href="styles.css?v=41">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
@@ -15,6 +15,9 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#06060a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="icon.png">
 </head>
 
@@ -24,7 +27,7 @@
         <div class="welcome-content">
             <div class="welcome-logo">
                 <div class="welcome-icon">🎵</div>
-                <h1>Suno Play <span>by ChemaDev</span></h1>
+                <h1>ChemPlay <span>by ChemaDev</span></h1>
             </div>
             <div class="welcome-features">
                 <div class="welcome-feature">
@@ -32,6 +35,13 @@
                     <div>
                         <strong>Descubre música</strong>
                         <p>Pulsa Sorpresa para descubrir canciones de Suno AI y Jamendo</p>
+                    </div>
+                </div>
+                <div class="welcome-feature">
+                    <span class="feature-icon">🔍</span>
+                    <div>
+                        <strong>Busca y descarga</strong>
+                        <p>Busca en tu biblioteca, YouTube y red torrent. Descarga directa al servidor</p>
                     </div>
                 </div>
                 <div class="welcome-feature">
@@ -46,13 +56,6 @@
                     <div>
                         <strong>Tu Ranking personal</strong>
                         <p>Tus valoraciones son únicas. Cada usuario tiene su propio ranking</p>
-                    </div>
-                </div>
-                <div class="welcome-feature">
-                    <span class="feature-icon">🎵</span>
-                    <div>
-                        <strong>Filtra por género</strong>
-                        <p>Selecciona un género para escuchar solo lo que te gusta</p>
                     </div>
                 </div>
             </div>
@@ -70,7 +73,7 @@
             <div class="brand">
                 <div class="brand-icon"><i data-lucide="disc-3"></i></div>
                 <div class="brand-text">
-                    <h2>Suno Play</h2>
+                    <h2>ChemPlay</h2>
                 </div>
             </div>
             <div class="header-actions">
@@ -79,6 +82,10 @@
                 </div>
                 <button class="header-btn" id="auth-btn" title="Login" style="display:none;">
                     👤
+                </button>
+                <button class="header-btn" id="search-btn" title="Buscar">
+                    <i data-lucide="search"></i>
+                    <span class="dl-badge" id="dl-count" style="display:none;">0</span>
                 </button>
                 <button class="header-btn" id="library-btn" title="Ranking">
                     🏆
@@ -91,7 +98,7 @@
                 <div class="artwork-glow"></div>
                 <div class="artwork-ring"></div>
                 <div class="artwork" id="artwork-wrapper">
-                    <img src="icon.png" alt="Suno Play" id="player-thumb">
+                    <img src="icon.png" alt="ChemPlay" id="player-thumb">
                     <div id="loading-indicator">
                         <div class="loader-spinner"></div>
                     </div>
@@ -99,7 +106,7 @@
             </div>
             <div class="song-meta">
                 <h1 id="player-title">Listo para sonar</h1>
-                <p id="player-artist">SunoPlay AI</p>
+                <p id="player-artist">ChemPlay</p>
                 <p id="player-genre" class="player-genre"></p>
             </div>
             <div class="seek-container">
@@ -126,11 +133,11 @@
             </div>
             <div class="vote-controls">
                 <button class="btn-vote dislike" id="vote-dislike">
-                    <span class="vote-emoji">👎</span>
+                    <span class="vote-emoji">💔</span>
                     <span class="vote-label">-1</span>
                 </button>
                 <button class="btn-vote like" id="vote-like">
-                    <span class="vote-emoji">👍</span>
+                    <span class="vote-emoji">❤️</span>
                     <span class="vote-label">+1</span>
                 </button>
             </div>
@@ -148,7 +155,8 @@
         <footer class="stats-footer">
             <span><i data-lucide="hard-drive" style="width:14px;height:14px;"></i> <span id="lib-size">0
                     KB</span></span>
-            <div class="footer-credit">By ChemaDev</div>
+            <a href="chemplay-v3.2.0.apk" download="ChemPlay-v3.2.0.apk" class="apk-download-link"><i data-lucide="smartphone" style="width:13px;height:13px;"></i> Android APK</a>
+            <div class="footer-credit" id="footer-credit">By ChemaDev</div>
         </footer>
     </div>
     <div id="search-overlay" class="search-overlay">
@@ -165,11 +173,11 @@
     </div>
 
     <audio id="main-audio"></audio>
-    <script src="app_v2.js?v=38"></script>
+    <script src="app_v2.js?v=48"></script>
     <script>
         lucide.createIcons();
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js?v=34').then(reg => reg.update());
+            navigator.serviceWorker.register('sw.js?v=35').then(reg => reg.update());
         }
     </script>
 </body>

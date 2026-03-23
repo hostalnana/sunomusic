@@ -1,5 +1,6 @@
 <?php
 header('Content-Type: application/json');
+require_once __DIR__ . '/tag_helper.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
 if (!$data) {
@@ -93,6 +94,7 @@ $newSong = [
     'size' => strlen($audioData),
     'savedAt' => time() * 1000
 ];
+$newSong['tags'] = generateTags($newSong);
 
 array_unshift($library, $newSong);
 file_put_contents($libFile, json_encode($library, JSON_PRETTY_PRINT));

@@ -1,4 +1,4 @@
-// === SunoPlay Premium v32 — Per-User System ===
+// === ChemPlay v3.0 ===
 
 // === Google OAuth Config ===
 const GOOGLE_CLIENT_ID = '417309092514-trlid9cfs4ugeedc6721bt7bgdiplgnc.apps.googleusercontent.com';
@@ -176,8 +176,91 @@ let isSeeking = false;
 let playHistory = [];
 let historyIndex = -1;
 
+// === Detect native app WebView ===
+const isNativeApp = navigator.userAgent.includes('SunoPlayApp');
+
+// === Native Bridge State (for native app audio delegation) ===
+let nativeState = { playing: false, position: 0, duration: 0, state: 'none' };
+
+window.nativeBridge = {
+    onEvent(event, data) {
+        switch (event) {
+            case 'playbackState':
+                nativeState.state = data.state || 'none';
+                isPlaying = (data.state === 'playing' || data.state === 'buffering');
+                if (data.position !== undefined) nativeState.position = data.position / 1000;
+                if (data.duration !== undefined && data.duration > 0) nativeState.duration = data.duration / 1000;
+
+                // Sync metadata from native side
+                if (data.title) {
+                    const needsSync = !currentSong || (data.mediaId && data.mediaId !== currentSong.id);
+                    if (needsSync) {
+                        currentSong = {
+                            id: data.mediaId || '', title: data.title,
+                            artist: data.artist || '', genre: '',
+                            url: '', thumb: data.artUri || 'icon.png'
+                        };
+                        playerTitle.textContent = data.title;
+                        playerArtist.textContent = data.artist || '';
+                        if (data.artUri) playerThumb.src = data.artUri;
+                        updateHeartsDisplay();
+                    }
+                }
+
+                if (data.state === 'buffering' && loadingIndicator) loadingIndicator.style.display = 'block';
+                else if (loadingIndicator) loadingIndicator.style.display = 'none';
+                updatePlayerUI();
+                if (!isSeeking) updateNativeSeekBar();
+                break;
+            case 'songComplete':
+                handleVote('like', true);
+                break;
+            case 'error':
+                isLoading = false;
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                showToast('Error: ' + (data && data.message ? data.message : 'reproduccion'));
+                setTimeout(() => playNext(false), 1500);
+                break;
+        }
+    }
+};
+
+function updateNativeSeekBar() {
+    if (isSeeking || nativeState.duration <= 0) return;
+    const pct = (nativeState.position / nativeState.duration) * 100;
+    if (seekFill) seekFill.style.width = Math.min(100, pct) + '%';
+    if (timeCurrentEl) timeCurrentEl.textContent = formatTime(nativeState.position);
+    if (timeTotalEl) timeTotalEl.textContent = formatTime(nativeState.duration);
+}
+
 // === Google Sign-In ===
 function initGoogleSignIn() {
+    // Auto-login si tiene token guardado
+    const savedToken = localStorage.getItem('sunoplay-auth-token');
+    if (savedToken) {
+        authToken = savedToken;
+        const savedUser = JSON.parse(localStorage.getItem('sunoplay-user') || 'null');
+        if (savedUser) {
+            currentUser = savedUser;
+            showUserLoggedIn();
+            hideWelcomeModal();
+            return;
+        }
+    }
+
+    const btnContainer = document.getElementById('google-signin-btn');
+
+    // In native app WebView, use native bridge for login (GSI blocked in WebView)
+    if (isNativeApp) {
+        if (btnContainer) {
+            btnContainer.innerHTML = '<button onclick="nativeGoogleLogin()" class="native-login-btn">' +
+                '<svg viewBox="0 0 24 24" width="20" height="20" style="margin-right:8px;"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>' +
+                'Iniciar sesión con Google</button>';
+        }
+        return;
+    }
+
+    // Normal web: use Google GSI library
     if (typeof google === 'undefined' || !google.accounts) {
         setTimeout(initGoogleSignIn, 500);
         return;
@@ -188,7 +271,6 @@ function initGoogleSignIn() {
         auto_select: true
     });
 
-    const btnContainer = document.getElementById('google-signin-btn');
     if (btnContainer) {
         google.accounts.id.renderButton(btnContainer, {
             type: 'standard',
@@ -199,19 +281,33 @@ function initGoogleSignIn() {
             width: 280
         });
     }
+}
 
-    // Auto-login si tiene token guardado
-    const savedToken = localStorage.getItem('sunoplay-auth-token');
-    if (savedToken) {
-        authToken = savedToken;
-        const savedUser = JSON.parse(localStorage.getItem('sunoplay-user') || 'null');
-        if (savedUser) {
-            currentUser = savedUser;
-            showUserLoggedIn();
-            hideWelcomeModal();
-        }
+// Open login in system browser via native bridge
+function nativeGoogleLogin() {
+    if (window.AndroidBridge) {
+        window.AndroidBridge.openGoogleLogin();
+    } else {
+        // Fallback: open directly
+        window.open('https://app.lomastrend.com/sunoplay/login_native.html', '_blank');
     }
 }
+
+// Handle auth callback from native app
+window.handleNativeAuth = function(token, user) {
+    authToken = token;
+    currentUser = user;
+    localStorage.setItem('sunoplay-auth-token', token);
+    localStorage.setItem('sunoplay-user', JSON.stringify(user));
+    showUserLoggedIn();
+    hideWelcomeModal();
+    loadHeartsFromServer().then(h => { unifiedHearts = h; updateHeartsDisplay(); });
+    showToast('Hola ' + (user.name || '').split(' ')[0] + '!');
+    // Pass token to native bridge for API calls
+    if (isNativeApp && window.AndroidBridge) {
+        try { AndroidBridge.setAuthToken(token); } catch (e) {}
+    }
+};
 
 async function handleGoogleCredential(response) {
     const idToken = response.credential;
@@ -267,6 +363,47 @@ function logout() {
     showWelcomeModal();
 }
 
+// === App Version Check (for native app) ===
+async function checkAppVersion() {
+    if (!isNativeApp) return false;
+    // Extract version from UA: "SunoPlayApp/1.0" -> "1.0"
+    const match = navigator.userAgent.match(/SunoPlayApp\/([\d.]+)/);
+    const localVersion = match ? match[1] : '0';
+    try {
+        const res = await fetch('api/app_version.php?_=' + Date.now());
+        const data = await res.json();
+        if (data.version_name && data.version_name !== localVersion && data.apk_url) {
+            return data;
+        }
+    } catch (e) { /* ignore */ }
+    return false;
+}
+
+function showUpdateModal(versionData) {
+    // Create update modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'update-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML = `
+        <div style="background:#111118;border-radius:20px;padding:32px 24px;max-width:340px;width:100%;text-align:center;border:1px solid rgba(139,92,246,0.3);">
+            <div style="font-size:48px;margin-bottom:12px;">🚀</div>
+            <h2 style="color:#fff;font-size:22px;margin-bottom:8px;">Nueva versión ${versionData.version_name}</h2>
+            <p style="color:#aaa;font-size:14px;margin-bottom:24px;line-height:1.5;">${versionData.changelog || 'Mejoras y correcciones.'}</p>
+            <a href="${versionData.apk_url}" style="display:inline-block;background:linear-gradient(135deg,#8b5cf6,#ec4899);color:#fff;text-decoration:none;padding:14px 32px;border-radius:30px;font-weight:600;font-size:15px;margin-bottom:12px;">Descargar actualización</a>
+            ${!versionData.force_update ? '<br><button id="skip-update-btn" style="background:none;border:none;color:#666;font-size:13px;margin-top:12px;cursor:pointer;padding:8px;">Más tarde</button>' : ''}
+        </div>`;
+    document.body.appendChild(overlay);
+
+    if (!versionData.force_update) {
+        document.getElementById('skip-update-btn')?.addEventListener('click', () => {
+            overlay.remove();
+            // After dismissing update, show login if needed
+            const savedToken = localStorage.getItem('sunoplay-auth-token');
+            if (!savedToken) showWelcomeModal();
+        });
+    }
+}
+
 // === Welcome Modal ===
 function showWelcomeModal() {
     const modal = document.getElementById('welcome-modal');
@@ -283,6 +420,61 @@ function hideWelcomeModal() {
         modal.classList.remove('active');
         modal.classList.add('closing');
         setTimeout(() => { modal.style.display = 'none'; }, 400);
+    }
+}
+
+// === What's New (Novedades) ===
+const APP_VERSION = '3.2.0';
+const WHATS_NEW_FEATURES = [
+    { icon: '🔍', title: 'Búsqueda mejorada', desc: 'Busca desde 2 caracteres con coincidencia parcial. YouTube y Torrents siempre visibles.' },
+    { icon: '🎵', title: 'Ahora somos ChemPlay', desc: 'Nueva identidad, misma potencia. Tu reproductor premium by ChemaDev.' },
+    { icon: '🏷️', title: 'Sistema de etiquetas', desc: 'Organiza tu biblioteca con tags: fuente, género, estilo. Filtra por múltiples etiquetas.' },
+    { icon: '🎯', title: 'Selector de fuente', desc: 'Elige entre Suno AI, YouTube o Torrent al descubrir música nueva.' },
+    { icon: '❤️', title: 'Favoritos con corazón', desc: 'Dale ❤️ o 💔 a las canciones. Saltar no resta corazones.' },
+    { icon: '🚗', title: 'Android Auto mejorado', desc: 'Favoritos, búsqueda por voz y caché de siguiente canción.' },
+    { icon: '⚡', title: 'Reproducción sin cortes', desc: 'La siguiente canción se precarga en segundo plano para transiciones instantáneas.' }
+];
+
+function showWhatsNew() {
+    const lastSeen = localStorage.getItem('sunoplay-whats-new-version');
+    if (lastSeen === APP_VERSION) return;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'whats-new-modal';
+    overlay.className = 'error-modal-overlay';
+    overlay.style.display = 'flex';
+
+    const featuresHtml = WHATS_NEW_FEATURES.map(f => `
+        <div class="whats-new-item">
+            <span class="whats-new-icon">${f.icon}</span>
+            <div class="whats-new-text">
+                <strong>${f.title}</strong>
+                <span>${f.desc}</span>
+            </div>
+        </div>
+    `).join('');
+
+    overlay.innerHTML = `
+        <div class="whats-new-container">
+            <div class="whats-new-header">
+                <div class="whats-new-version">v${APP_VERSION}</div>
+                <h2>Novedades</h2>
+            </div>
+            <div class="whats-new-list">${featuresHtml}</div>
+            <button class="whats-new-close" onclick="dismissWhatsNew()">Entendido</button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('active'));
+}
+
+function dismissWhatsNew() {
+    localStorage.setItem('sunoplay-whats-new-version', APP_VERSION);
+    const modal = document.getElementById('whats-new-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 300);
     }
 }
 
@@ -367,6 +559,90 @@ function openSearch() {
         input.focus();
     }, 10);
     animateClick(playerTitle);
+    // Show active downloads at the top
+    showActiveDownloadsInSearch();
+}
+
+let searchDownloadPollInterval = null;
+
+async function showActiveDownloadsInSearch() {
+    // Initial render
+    await updateActiveDownloadsUI();
+    // Start live polling every 3s
+    if (searchDownloadPollInterval) clearInterval(searchDownloadPollInterval);
+    searchDownloadPollInterval = setInterval(updateActiveDownloadsUI, 3000);
+}
+
+async function updateActiveDownloadsUI() {
+    const resultsContainer = document.getElementById('search-results');
+    if (!resultsContainer) return;
+    try {
+        const res = await fetch('api/torrent_download.php?list');
+        const data = await res.json();
+
+        // Remove previous downloads section
+        const prev = resultsContainer.querySelector('.active-downloads-section');
+        if (prev) prev.remove();
+
+        if (!data.success || !data.jobs || data.jobs.length === 0) {
+            // No active downloads — stop polling
+            if (searchDownloadPollInterval) { clearInterval(searchDownloadPollInterval); searchDownloadPollInterval = null; }
+            return;
+        }
+
+        let html = '<div class="active-downloads-section">';
+        html += '<div class="torrent-section-header" style="margin-top:0;border-top:none;">Descargas activas</div>';
+        data.jobs.forEach(j => {
+            const elapsed = Math.round((Date.now()/1000) - j.started);
+            const mins = Math.floor(elapsed / 60);
+            const secs = elapsed % 60;
+            const statusLabel = j.status === 'metadata' ? 'Resolviendo...' :
+                                j.status === 'processing' ? 'Procesando...' :
+                                j.progress + '%';
+            const dlInfo = j.downloaded && j.total ? ` ${j.downloaded}/${j.total}` : '';
+            const speed = j.speed ? ` ${j.speed}` : '';
+            html += `
+                <div class="search-result-item torrent-result active-download-item" id="dl-${j.jobId}">
+                    <div class="torrent-icon" style="font-size:18px;">&#x23F3;</div>
+                    <div class="search-result-info" style="flex:1;min-width:0;">
+                        <div class="search-result-title">${j.title}</div>
+                        <div class="search-result-artist">
+                            ${statusLabel}${dlInfo}${speed}
+                            &middot; ${mins}m ${secs}s
+                            <span class="search-badge torrent">${j.status}</span>
+                        </div>
+                        ${j.status === 'downloading' && j.progress > 0 ? `
+                        <div class="dl-progress-bar-wrap">
+                            <div class="dl-progress-bar-fill" style="width:${j.progress}%"></div>
+                        </div>` : ''}
+                    </div>
+                    <button class="ranking-delete" onclick="event.stopPropagation();cancelDownloadFromSearch('${j.jobId}')" title="Cancelar">&#x2716;</button>
+                </div>`;
+        });
+        html += '</div>';
+
+        resultsContainer.insertAdjacentHTML('afterbegin', html);
+    } catch (e) { /* ignore */ }
+}
+
+async function cancelDownloadFromSearch(jobId) {
+    if (!confirm('Cancelar esta descarga?')) return;
+    // Stop polling
+    if (activeTorrentPolls[jobId]) {
+        clearInterval(activeTorrentPolls[jobId]);
+        delete activeTorrentPolls[jobId];
+    }
+    hideTorrentProgress();
+    try {
+        await fetch('api/torrent_download.php?cancel=' + jobId);
+    } catch(e) {}
+    // Remove from UI
+    const el = document.getElementById('dl-' + jobId);
+    if (el) el.remove();
+    // Remove section if empty
+    const section = document.querySelector('.active-downloads-section');
+    if (section && !section.querySelector('.active-download-item')) section.remove();
+    showToast('Descarga cancelada');
 }
 
 function closeSearch() {
@@ -376,6 +652,8 @@ function closeSearch() {
     overlay.classList.remove('active');
     input.value = '';
     document.getElementById('search-results').innerHTML = '';
+    // Stop live polling of active downloads
+    if (searchDownloadPollInterval) { clearInterval(searchDownloadPollInterval); searchDownloadPollInterval = null; }
     setTimeout(() => { overlay.style.display = 'none'; }, 300);
 }
 
@@ -385,18 +663,31 @@ async function performSearch(query) {
         resultsContainer.innerHTML = '';
         return;
     }
-    if (query.length < 3) return;
 
     resultsContainer.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:16px;">Buscando...</p>';
 
     const q = query.toLowerCase();
 
-    // 1. Resultados locales
+    // Check if query is a YouTube URL
+    if (isYouTubeUrl(query.trim())) {
+        resultsContainer.innerHTML = `
+            <div class="search-result-item yt-download-item" onclick="downloadFromYouTube('${query.trim().replace(/'/g, "\\'")}'); closeSearch();">
+                <div class="yt-icon-big">&#x25B6;&#xFE0F;</div>
+                <div class="search-result-info">
+                    <div class="search-result-title">Descargar de YouTube</div>
+                    <div class="search-result-artist">${query.trim().substring(0, 60)} <span class="search-badge yt">YouTube</span></div>
+                </div>
+            </div>`;
+        return;
+    }
+
+    // 1. Resultados locales (coincidencia parcial - contains)
     const allSongs = await getAllSongs();
     const localResults = allSongs.filter(s =>
         (s.title || '').toLowerCase().includes(q) ||
         (s.artist || '').toLowerCase().includes(q) ||
-        (s.genre || '').toLowerCase().includes(q)
+        (s.genre || '').toLowerCase().includes(q) ||
+        (s.tags || []).some(t => t.toLowerCase().includes(q))
     ).slice(0, 6).map(s => ({ ...s, source: 'local' }));
 
     // 2. Resultados de API (Suno + Jamendo)
@@ -405,7 +696,6 @@ async function performSearch(query) {
         const resp = await fetch(`api/search.php?q=${encodeURIComponent(query)}&limit=8`);
         if (resp.ok) {
             const data = await resp.json();
-            // Normalizar campos: la API usa 'url', la app usa 'url'
             apiResults = (data || []).map(s => ({
                 id: s.id,
                 title: s.title,
@@ -422,32 +712,48 @@ async function performSearch(query) {
     const localIds = new Set(localResults.map(s => s.id));
     const merged = [...localResults, ...apiResults.filter(s => !localIds.has(s.id))];
 
-    if (merged.length === 0) {
-        resultsContainer.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">No se encontraron resultados</p>';
-        return;
-    }
-
     const sourceBadge = (source) => {
         if (source === 'local') return '<span class="search-badge local">📚 Local</span>';
         if (source === 'suno') return '<span class="search-badge suno">🔥 Suno</span>';
         return '<span class="search-badge jamendo">🎵 Jamendo</span>';
     };
 
-    resultsContainer.innerHTML = merged.map(s => {
-        const songData = encodeURIComponent(JSON.stringify({
-            id: s.id, title: s.title, artist: s.artist,
-            url: s.url, thumb: s.thumb || 'icon.png', genre: s.genre
-        }));
-        return `
-            <div class="search-result-item" onclick="playFromSearch('${songData}')">
-                <img class="search-result-thumb" src="${s.thumb || 'icon.png'}" alt="" onerror="this.src='icon.png'">
-                <div class="search-result-info">
-                    <div class="search-result-title">${s.title}</div>
-                    <div class="search-result-artist">${s.artist} ${sourceBadge(s.source)}</div>
+    let html = '';
+
+    if (merged.length === 0) {
+        html = '<p style="text-align:center;color:var(--text-muted);padding:16px;">Sin resultados en biblioteca</p>';
+    } else {
+        html = merged.map(s => {
+            const songData = encodeURIComponent(JSON.stringify({
+                id: s.id, title: s.title, artist: s.artist,
+                url: s.url, thumb: s.thumb || 'icon.png', genre: s.genre
+            }));
+            return `
+                <div class="search-result-item" onclick="playFromSearch('${songData}')">
+                    <img class="search-result-thumb" src="${s.thumb || 'icon.png'}" alt="" onerror="this.src='icon.png'">
+                    <div class="search-result-info">
+                        <div class="search-result-title">${s.title}</div>
+                        <div class="search-result-artist">${s.artist} ${sourceBadge(s.source)}</div>
+                    </div>
                 </div>
+            `;
+        }).join('');
+    }
+
+    // Siempre mostrar botones de YouTube y Torrents
+    const safeQuery = query.replace(/'/g, "\\'");
+    html += `
+        <div class="search-external-buttons">
+            <div class="yt-search-btn" onclick="searchYouTube('${safeQuery}')">
+                &#x25B6;&#xFE0F; Buscar en YouTube
             </div>
-        `;
-    }).join('');
+            <div class="torrent-search-btn" onclick="searchTorrents('${safeQuery}')">
+                &#x1F9F2; Buscar en Torrents
+            </div>
+        </div>
+    `;
+
+    resultsContainer.innerHTML = html;
 }
 
 function playFromSearch(songJson) {
@@ -491,6 +797,7 @@ function spawnEmojiBurst(x, y, emoji) {
 
 // === Seek Bar ===
 function updateSeekBar() {
+    if (isNativeApp) return; // Native uses updateNativeSeekBar via bridge events
     if (isSeeking || !mainAudio.duration) return;
     const pct = (mainAudio.currentTime / mainAudio.duration) * 100;
     if (seekFill) seekFill.style.width = pct + '%';
@@ -511,7 +818,8 @@ function initSeekBar() {
         if (!isSeeking) return;
         const pct = getPos(e);
         seekFill.style.width = (pct * 100) + '%';
-        timeCurrentEl.textContent = formatTime(pct * mainAudio.duration);
+        const dur = (isNativeApp) ? nativeState.duration : mainAudio.duration;
+        timeCurrentEl.textContent = formatTime(pct * dur);
     };
     const endSeek = (e) => {
         if (!isSeeking) return;
@@ -519,8 +827,15 @@ function initSeekBar() {
         const rect = seekBar.getBoundingClientRect();
         const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
         const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-        mainAudio.currentTime = pct * mainAudio.duration;
-        requestAnimationFrame(updateSeekBar);
+        if (isNativeApp && window.AndroidBridge) {
+            const ms = Math.round(pct * nativeState.duration * 1000);
+            try { AndroidBridge.seekTo(ms); } catch (e2) {}
+            nativeState.position = pct * nativeState.duration;
+            updateNativeSeekBar();
+        } else {
+            mainAudio.currentTime = pct * mainAudio.duration;
+            requestAnimationFrame(updateSeekBar);
+        }
     };
     seekBar.addEventListener('mousedown', startSeek);
     seekBar.addEventListener('touchstart', startSeek, { passive: true });
@@ -542,9 +857,13 @@ function initVolume() {
         return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     };
     const setVol = (e) => {
-        mainAudio.volume = getPos(e);
+        const v = getPos(e);
+        mainAudio.volume = v;
         mainAudio.muted = false;
-        localStorage.setItem('sunoplay-volume', mainAudio.volume);
+        localStorage.setItem('sunoplay-volume', v);
+        if (isNativeApp && window.AndroidBridge) {
+            try { AndroidBridge.setVolume(v); } catch (e2) {}
+        }
         updateVolumeUI();
     };
     let dragging = false;
@@ -616,22 +935,22 @@ async function handleVote(type, isAuto = false) {
     unifiedHearts[songId] = hearts;
     const result = await saveHeartsToServer(songId, hearts);
 
-    // Lógica de borrado/quitado
-    if (hearts <= 0) {
-        showToast("🚫 Quitada de la lista");
-        if (result && result.deleted) {
-            showToast("🔥 ¡Borrada! (Votos globales <= 0)");
-            delete unifiedHearts[songId];
-        }
-        currentSong = null; // Evitar bucles limpiando la canción actual
+    // Eliminar canción cuando corazones negativos
+    if (hearts < 0) {
+        const songTitle = currentSong?.title || 'Canción';
+        showToast(`🗑️ Eliminando "${songTitle}"...`);
+        await deleteSongFromDB(songId);
+        delete unifiedHearts[songId];
+        showToast(`🔥 "${songTitle}" eliminada`);
+        currentSong = null;
         setTimeout(() => playNext(false), 2000);
         return;
     }
 
     updateHeartsDisplay();
 
-    // Si viene de una escucha completa (ended), pasar a la siguiente sin votar otra vez
-    if (isAuto && type === "like") {
+    // Si es automático (ended o skip), pasar a la siguiente sin votar otra vez
+    if (isAuto) {
         playNext(false);
     }
 }
@@ -725,14 +1044,8 @@ function addToHistory(song) {
     historyIndex = playHistory.length - 1;
 }
 
-async function playNext(doVote = true) {
+async function playNext(doVote = false) {
     if (isLoading) return;
-
-    // Si es un salto (manual o auto) y pedimos computar voto
-    if (currentSong && doVote) {
-        await handleVote('dislike', true);
-        return;
-    }
 
     let libSongs = await getAllSongs();
     if (libSongs && libSongs.length > 0) {
@@ -794,6 +1107,12 @@ async function playPrev() {
         historyIndex--;
         const song = playHistory[historyIndex];
         await tryPlaySong(song);
+    } else if (isNativeApp && window.AndroidBridge) {
+        if (nativeState.position > 3) {
+            try { AndroidBridge.seekTo(0); } catch (e) {}
+            nativeState.position = 0;
+            updateNativeSeekBar();
+        }
     } else if (mainAudio.currentTime > 3) {
         mainAudio.currentTime = 0;
     }
@@ -804,6 +1123,26 @@ async function tryPlaySong(song) {
     isLoading = true;
     currentSong = song;
 
+    // === Native app: delegate playback to MusicService ===
+    if (isNativeApp && window.AndroidBridge) {
+        if (loadingIndicator) loadingIndicator.style.display = 'block';
+        playerTitle.textContent = song.title;
+        playerArtist.textContent = song.artist;
+        if (playerGenreEl) playerGenreEl.textContent = song.genre || '';
+        if (song.thumb) playerThumb.src = song.thumb;
+        playerThumb.style.opacity = '1';
+        try { AndroidBridge.playSong(JSON.stringify(song)); } catch (e) { /* bridge error */ }
+        isPlaying = true;
+        isLoading = false;
+        if (loadingIndicator) loadingIndicator.style.display = 'none';
+        addToHistory(song);
+        updatePlayerUI();
+        saveCurrentToLibrary(song);
+        updateHeartsDisplay();
+        return true;
+    }
+
+    // === Web/PWA: use HTML5 Audio ===
     if (loadingIndicator) loadingIndicator.style.display = 'block';
     playerTitle.textContent = "Sintonizando...";
     playerArtist.textContent = "Conectando...";
@@ -839,16 +1178,24 @@ async function tryPlaySong(song) {
         });
     };
 
-    let success = await tryUrl(song.url);
+    let success = false;
     let playedSong = song;
+    try {
+        success = await tryUrl(song.url);
 
-    if (!success) {
-        const libSongs = await getAllSongs();
-        if (libSongs.length > 0) {
-            const random = libSongs[Math.floor(Math.random() * libSongs.length)];
-            success = await tryUrl(random.url, 3000);
-            if (success) playedSong = random;
+        if (!success) {
+            // Reset audio state before retrying
+            mainAudio.removeAttribute('src');
+            mainAudio.load();
+            const libSongs = await getAllSongs();
+            if (libSongs.length > 0) {
+                const random = libSongs[Math.floor(Math.random() * libSongs.length)];
+                success = await tryUrl(random.url, 3000);
+                if (success) playedSong = random;
+            }
         }
+    } catch (e) {
+        success = false;
     }
 
     isLoading = false;
@@ -929,33 +1276,96 @@ function updatePlayerUI() {
 function handlePlayPause() {
     if (!currentSong) { playNext(); return; }
     animateClick(playPauseBtn);
+    if (isNativeApp && window.AndroidBridge) {
+        try {
+            if (isPlaying) {
+                AndroidBridge.pause();
+            } else {
+                // Try resume first; if service has no prepared player,
+                // re-send the current song to force a fresh play
+                AndroidBridge.resume();
+                // Also re-send the song in case the service lost state
+                setTimeout(() => {
+                    if (!isPlaying && currentSong) {
+                        AndroidBridge.playSong(JSON.stringify(currentSong));
+                    }
+                }, 800);
+            }
+        } catch (e) { /* bridge error */ }
+        // Do NOT toggle isPlaying here — let nativeBridge.onEvent update it
+        // from the actual service state
+        return;
+    }
     if (isPlaying) {
         mainAudio.pause();
         isPlaying = false;
+        updatePlayerUI();
     } else {
-        mainAudio.play().catch(() => { });
-        isPlaying = true;
-        requestAnimationFrame(updateSeekBar);
+        mainAudio.play().then(() => {
+            isPlaying = true;
+            updatePlayerUI();
+            requestAnimationFrame(updateSeekBar);
+        }).catch(() => {
+            // play() failed — try reloading the current song
+            if (currentSong && currentSong.url) {
+                let finalUrl = currentSong.url;
+                if (finalUrl.startsWith('http') && !finalUrl.startsWith(location.origin)) {
+                    finalUrl = `api/download.php?url=${encodeURIComponent(finalUrl)}`;
+                }
+                mainAudio.src = finalUrl;
+                mainAudio.load();
+                mainAudio.play().then(() => {
+                    isPlaying = true;
+                    updatePlayerUI();
+                    requestAnimationFrame(updateSeekBar);
+                }).catch(() => {
+                    isPlaying = false;
+                    updatePlayerUI();
+                    showToast("Error al reproducir. Toca siguiente.");
+                });
+            } else {
+                isPlaying = false;
+                updatePlayerUI();
+            }
+        });
     }
-    updatePlayerUI();
 }
 
 function handleStop() {
-    mainAudio.pause();
-    mainAudio.currentTime = 0;
+    if (isNativeApp && window.AndroidBridge) {
+        try { AndroidBridge.stop(); } catch (e) {}
+    } else {
+        mainAudio.pause();
+        mainAudio.currentTime = 0;
+    }
     isPlaying = false;
+    nativeState.position = 0;
     if (seekFill) seekFill.style.width = '0%';
     if (timeCurrentEl) timeCurrentEl.textContent = '0:00';
     updatePlayerUI();
 }
 
 function seekForward(seconds = 10) {
+    if (isNativeApp && window.AndroidBridge) {
+        const newPos = Math.min(nativeState.duration, nativeState.position + seconds);
+        try { AndroidBridge.seekTo(Math.round(newPos * 1000)); } catch (e) {}
+        nativeState.position = newPos;
+        updateNativeSeekBar();
+        return;
+    }
     if (!mainAudio.duration) return;
     mainAudio.currentTime = Math.min(mainAudio.duration, mainAudio.currentTime + seconds);
     updatePositionState();
 }
 
 function seekBackward(seconds = 10) {
+    if (isNativeApp && window.AndroidBridge) {
+        const newPos = Math.max(0, nativeState.position - seconds);
+        try { AndroidBridge.seekTo(Math.round(newPos * 1000)); } catch (e) {}
+        nativeState.position = newPos;
+        updateNativeSeekBar();
+        return;
+    }
     if (!mainAudio.duration) return;
     mainAudio.currentTime = Math.max(0, mainAudio.currentTime - seconds);
     updatePositionState();
@@ -1027,78 +1437,216 @@ async function deleteFromRanking(id, title) {
     updateStorageStats();
 }
 
+async function deleteGroup(songIds, groupName) {
+    if (!confirm(`¿Eliminar ${songIds.length} canciones de "${groupName}"?`)) return;
+    showToast(`🗑️ Eliminando ${songIds.length} canciones...`);
+    for (const id of songIds) {
+        await deleteSongFromDB(id);
+        delete unifiedHearts[id];
+    }
+    showToast(`🗑️ "${groupName}" eliminado (${songIds.length} canciones)`);
+    document.getElementById("ranking-panel")?.remove();
+    openRanking();
+    updateStorageStats();
+}
+
+// === Tag System ===
+const SOURCE_TAGS = ['YouTube', 'Suno AI', 'Jamendo', 'Torrent', 'Subido'];
+const STYLE_TAGS = ['Remix', 'Live', 'Acoustic', 'Instrumental', 'Cover', 'Feat', 'Mix', 'Unplugged', 'Karaoke'];
+let rankingActiveTags = new Set();
+let rankingAllSongs = [];
+
+function generateTagsJS(song) {
+    const tags = [];
+    const id = song.id || '';
+    const genre = song.genre || '';
+    // Fuente
+    if (id.startsWith('yt-') || genre === 'YouTube') tags.push('YouTube');
+    else if (id.startsWith('torrent-') || genre === 'Torrent') tags.push('Torrent');
+    else if (id.startsWith('upload-')) tags.push('Subido');
+    else if ((song.artist || '').toLowerCase().includes('jamendo')) tags.push('Jamendo');
+    else tags.push('Suno AI');
+    // Genero
+    if (genre && !['YouTube','Torrent','Otros',''].includes(genre)) {
+        genre.toLowerCase().split(/[\s,;\/]+/).forEach(w => {
+            w = w.trim();
+            if (w.length >= 3) tags.push(w.charAt(0).toUpperCase() + w.slice(1));
+        });
+    }
+    // Keywords en titulo
+    const title = (song.title || '').toLowerCase();
+    const kws = {remix:'Remix',live:'Live',acoustic:'Acoustic',instrumental:'Instrumental',
+                  cover:'Cover',feat:'Feat',mix:'Mix',unplugged:'Unplugged',karaoke:'Karaoke'};
+    for (const [k,v] of Object.entries(kws)) {
+        if (title.includes(k)) tags.push(v);
+    }
+    return [...new Set(tags)];
+}
+
+function getTagType(tag) {
+    if (SOURCE_TAGS.includes(tag)) return 'source';
+    if (STYLE_TAGS.includes(tag)) return 'style';
+    if (/^\d{4}s$/.test(tag)) return 'decade';
+    return 'genre';
+}
+
+function renderSongItem(s) {
+    const songData = encodeURIComponent(JSON.stringify({
+        id: s.id, title: s.title, artist: s.artist,
+        url: s.url, thumb: s.thumb || 'icon.png', genre: s.genre
+    }));
+    return `
+        <div class="ranking-song">
+            <img class="ranking-thumb" src="${s.thumb || 'icon.png'}" alt="" onerror="this.src='icon.png'" onclick="playFromRanking('${songData}')">
+            <div class="ranking-song-info" onclick="playFromRanking('${songData}')">
+                <div class="ranking-song-title">${s.title}</div>
+                <div class="ranking-song-artist">${s.artist}</div>
+            </div>
+            <div class="ranking-song-hearts">${s.hearts >= 0 ? "❤️".repeat(Math.min(s.hearts, 5)) : "💔".repeat(Math.min(Math.abs(s.hearts), 5))} <span>${s.hearts}</span></div>
+            <button class="ranking-delete" onclick="event.stopPropagation();deleteFromRanking('${s.id}','${s.title.replace(/'/g, "\\'")}')">🗑️</button>
+        </div>`;
+}
+
+function toggleTag(tag) {
+    if (rankingActiveTags.has(tag)) rankingActiveTags.delete(tag);
+    else rankingActiveTags.add(tag);
+    rerenderRankingContent();
+}
+
+function clearTagFilters() {
+    rankingActiveTags.clear();
+    rerenderRankingContent();
+}
+
+function rerenderRankingContent() {
+    const container = document.getElementById('ranking-tag-content');
+    if (!container) return;
+    container.innerHTML = renderTagCloud(rankingAllSongs) + renderFilteredSongs(rankingAllSongs);
+}
+
+function renderTagCloud(songs) {
+    // Collect all tags with counts
+    const tagCounts = {};
+    songs.forEach(s => {
+        const tags = s.tags || generateTagsJS(s);
+        tags.forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; });
+    });
+    // Sort: source first, then by count descending
+    const sorted = Object.entries(tagCounts).sort((a, b) => {
+        const typeA = getTagType(a[0]);
+        const typeB = getTagType(b[0]);
+        const order = { source: 0, genre: 1, style: 2, decade: 3 };
+        if (order[typeA] !== order[typeB]) return order[typeA] - order[typeB];
+        return b[1] - a[1];
+    });
+
+    let html = '<div class="tag-cloud">';
+    sorted.forEach(([tag, count]) => {
+        const type = getTagType(tag);
+        const active = rankingActiveTags.has(tag) ? ' active' : '';
+        html += `<button class="tag-pill ${type}${active}" onclick="toggleTag('${tag.replace(/'/g, "\\'")}')">${tag} <span class="tag-count">${count}</span></button>`;
+    });
+    html += '</div>';
+
+    // Filter bar
+    if (rankingActiveTags.size > 0) {
+        const filtered = songs.filter(s => {
+            const tags = s.tags || generateTagsJS(s);
+            return [...rankingActiveTags].every(t => tags.includes(t));
+        });
+        const filterNames = [...rankingActiveTags].join(' + ');
+        const ids = JSON.stringify(filtered.map(s => s.id));
+        html += `<div class="tag-filter-bar">
+            <span>Filtro: <strong>${filterNames}</strong> (${filtered.length})</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+                ${filtered.length > 0 ? `<button class="ranking-group-delete" onclick="event.stopPropagation();deleteGroup(${ids.replace(/"/g,'&quot;')},'${filterNames.replace(/'/g,"\\'")}')">🗑️</button>` : ''}
+                <button class="tag-filter-clear" onclick="clearTagFilters()">Limpiar</button>
+            </div>
+        </div>`;
+    }
+
+    return html;
+}
+
+function renderFilteredSongs(songs) {
+    let filtered = songs;
+    if (rankingActiveTags.size > 0) {
+        filtered = songs.filter(s => {
+            const tags = s.tags || generateTagsJS(s);
+            return [...rankingActiveTags].every(t => tags.includes(t));
+        });
+    }
+    // Sort by hearts descending
+    filtered.sort((a, b) => b.hearts - a.hearts);
+
+    if (filtered.length === 0) {
+        return '<div style="text-align:center;color:#666;padding:40px 20px;">No hay canciones con estos filtros</div>';
+    }
+
+    return '<div class="ranking-songs-list">' + filtered.map(s => renderSongItem(s)).join('') + '</div>';
+}
+
 async function openRanking() {
     const songs = await getAllSongs();
     if (!songs || songs.length === 0) { showToast("Biblioteca vacía"); return; }
 
-    const withHearts = songs.map(s => ({ ...s, hearts: unifiedHearts[s.id] ?? 0 }));
-
-    const byGenre = {};
-    withHearts.forEach(song => {
-        const genre = song.genre || "Sin género";
-        if (!byGenre[genre]) byGenre[genre] = { songs: [], totalHearts: 0 };
-        byGenre[genre].songs.push(song);
-        byGenre[genre].totalHearts += song.hearts;
-    });
-
-    Object.values(byGenre).forEach(g => g.songs.sort((a, b) => b.hearts - a.hearts));
-    const sortedGenres = Object.entries(byGenre).sort((a, b) => b[1].totalHearts - a[1].totalHearts);
+    rankingAllSongs = songs.map(s => ({ ...s, hearts: unifiedHearts[s.id] ?? 0 }));
+    rankingActiveTags.clear();
 
     let html = `
         <div id="ranking-panel" class="ranking-panel">
             <div class="ranking-handle" onclick="toggleRanking()"></div>
             <div class="ranking-header">
-                <h2>🏆 ${currentUser ? currentUser.name.split(' ')[0] + ' — ' : ''}Ranking</h2>
-                <span class="ranking-count">${withHearts.length} temas</span>
-            </div>`;
-
-    sortedGenres.forEach(([genre, data], idx) => {
-        const groupId = `ranking-group-${idx}`;
-        const isActive = selectedGenreFilter === genre;
-        html += `
-            <div class="ranking-group">
-                <div class="ranking-genre-header${isActive ? ' active' : ''}" onclick="toggleRankingGroup('${groupId}')">
-                    <span>🎵 ${genre} (${data.songs.length})</span>
-                    <span style="display:flex;align-items:center;gap:8px;">
-                        <span class="ranking-genre-hearts">❤️ ${data.totalHearts}</span>
-                        <span class="ranking-chevron" id="chevron-${groupId}">▶</span>
-                    </span>
+                <h2>🏆 ${currentUser ? currentUser.name.split(' ')[0] + ' — ' : ''}Biblioteca</h2>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="ranking-count">${rankingAllSongs.length} temas</span>
+                    <button class="ranking-close-btn" onclick="toggleRanking()"><i data-lucide="x"></i></button>
                 </div>
-                <div class="ranking-songs-list collapsed" id="${groupId}">`;
+            </div>
+            <div id="ranking-tag-content">
+                ${renderTagCloud(rankingAllSongs)}
+                ${renderFilteredSongs(rankingAllSongs)}
+            </div>
+        </div>`;
 
-        data.songs.forEach(s => {
-            const songData = encodeURIComponent(JSON.stringify({
-                id: s.id, title: s.title, artist: s.artist,
-                url: s.url, thumb: s.thumb || 'icon.png', genre: s.genre
-            }));
-            html += `
-                <div class="ranking-song">
-                    <img class="ranking-thumb" src="${s.thumb || 'icon.png'}" alt="" onerror="this.src='icon.png'" onclick="playFromRanking('${songData}')">
-                    <div class="ranking-song-info" onclick="playFromRanking('${songData}')">
-                        <div class="ranking-song-title">${s.title}</div>
-                        <div class="ranking-song-artist">${s.artist}</div>
-                    </div>
-                    <div class="ranking-song-hearts">${s.hearts >= 0 ? "❤️".repeat(Math.min(s.hearts, 5)) : "💔".repeat(Math.min(Math.abs(s.hearts), 5))} <span>${s.hearts}</span></div>
-                    <button class="ranking-delete" onclick="event.stopPropagation();deleteFromRanking('${s.id}','${s.title.replace(/'/g, "\\'")}')">🗑️</button>
-                </div>`;
-        });
-
-        html += `</div></div>`;
-    });
-
-    html += `</div>`;
     const panel = document.createElement("div");
     panel.innerHTML = html;
     document.body.appendChild(panel);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // === Discover (Sorpresa) ===
-async function discoverNew() {
+function discoverNew() {
     if (isLoading) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'error-modal-overlay';
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    overlay.innerHTML = `
+        <div class="discover-modal">
+            <div class="discover-modal-title">Sorpresa: descarga al azar de...</div>
+            <button class="discover-option suno" onclick="this.closest('.error-modal-overlay').remove(); discoverFromSuno();">
+                <span class="discover-option-icon">🤖</span>
+                <span>Suno AI</span>
+                <span class="discover-option-desc">Canciones IA populares</span>
+            </button>
+            <button class="discover-option youtube" onclick="this.closest('.error-modal-overlay').remove(); discoverFromYouTube();">
+                <span class="discover-option-icon">📺</span>
+                <span>YouTube</span>
+                <span class="discover-option-desc">Top vistas, descarga auto</span>
+            </button>
+            <button class="discover-option torrent" onclick="this.closest('.error-modal-overlay').remove(); discoverFromTorrent();">
+                <span class="discover-option-icon">🧲</span>
+                <span>Torrent</span>
+                <span class="discover-option-desc">Top seeders, descarga auto</span>
+            </button>
+        </div>`;
+    document.body.appendChild(overlay);
+}
 
+async function discoverFromSuno() {
     const genre = selectedGenreFilter || wheelGenres[Math.floor(Math.random() * wheelGenres.length)];
     currentGenre = genre;
-    showToast(`🔎 Buscando ${genre}...`);
+    showToast(`🔎 Buscando ${genre} en Suno...`);
 
     let tracks = await fetchSunoTracks(genre);
     let source = 'Suno AI';
@@ -1129,6 +1677,48 @@ async function discoverNew() {
         if (!success) playDemoFallback(genre);
     } else {
         playDemoFallback(genre);
+    }
+}
+
+async function discoverFromYouTube() {
+    showYouTubeProgress('Buscando cancion popular en YouTube...');
+    try {
+        const res = await fetch('api/surprise.php?source=youtube');
+        const data = await res.json();
+        if (!data.success || !data.track) {
+            hideYouTubeProgress();
+            showToast('No se encontro nada en YouTube, reintenta');
+            return;
+        }
+        const t = data.track;
+        showToast(`🎲 YouTube: ${t.title.substring(0, 40)}...`);
+        hideYouTubeProgress();
+        // Auto-download the picked track
+        downloadFromYouTube(t.url);
+    } catch (e) {
+        hideYouTubeProgress();
+        showToast('Error buscando en YouTube');
+    }
+}
+
+async function discoverFromTorrent() {
+    showYouTubeProgress('Buscando torrent popular...');
+    try {
+        const res = await fetch('api/surprise.php?source=torrent');
+        const data = await res.json();
+        if (!data.success || !data.track) {
+            hideYouTubeProgress();
+            showToast('No se encontraron torrents, reintenta');
+            return;
+        }
+        const t = data.track;
+        hideYouTubeProgress();
+        showToast(`🧲 Torrent: ${t.title.substring(0, 40)}... (${t.size})`);
+        // Auto-download the picked torrent
+        downloadTorrent(encodeURIComponent(t.magnet), t.title.replace(/'/g, "\\'"));
+    } catch (e) {
+        hideYouTubeProgress();
+        showToast('Error buscando torrents');
     }
 }
 
@@ -1230,15 +1820,486 @@ function initKeyboardControls() {
     });
 }
 
+// === YouTube Download ===
+function isYouTubeUrl(text) {
+    return /^https?:\/\/(www\.)?(youtube\.com|youtu\.be|music\.youtube\.com|m\.youtube\.com)\//i.test(text);
+}
+
+function showYouTubeProgress(msg) {
+    let overlay = document.getElementById('yt-progress-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'yt-progress-overlay';
+        overlay.className = 'yt-progress-overlay';
+        overlay.innerHTML = `
+            <div class="yt-progress-spinner"></div>
+            <div class="yt-progress-text" id="yt-progress-text"></div>
+        `;
+        const artwork = document.querySelector('.artwork-container');
+        if (artwork) artwork.appendChild(overlay);
+        else document.body.appendChild(overlay);
+    }
+    document.getElementById('yt-progress-text').textContent = msg || 'Descargando...';
+    overlay.style.display = 'flex';
+}
+
+function hideYouTubeProgress() {
+    const overlay = document.getElementById('yt-progress-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function showErrorModal(msg) {
+    const existing = document.getElementById('error-modal-overlay');
+    if (existing) existing.remove();
+    const div = document.createElement('div');
+    div.id = 'error-modal-overlay';
+    div.className = 'error-modal-overlay';
+    div.innerHTML = `
+        <div class="error-modal">
+            <div class="error-modal-icon">&#x26A0;&#xFE0F;</div>
+            <div class="error-modal-title">Error de descarga</div>
+            <div class="error-modal-msg">${msg}</div>
+            <button class="error-modal-btn" onclick="this.closest('.error-modal-overlay').remove()">Aceptar</button>
+        </div>`;
+    document.body.appendChild(div);
+}
+
+async function downloadFromYouTube(url) {
+    showYouTubeProgress('Iniciando descarga...');
+    try {
+        const startRes = await fetch('api/youtube_download.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+        const startData = await startRes.json();
+        if (!startData.success) {
+            hideYouTubeProgress();
+            showErrorModal(startData.error || 'Error al iniciar descarga');
+            return;
+        }
+        const jobId = startData.jobId;
+        showYouTubeProgress('Descargando audio...');
+
+        // Poll every 2s
+        let attempts = 0;
+        const poll = setInterval(async () => {
+            attempts++;
+            try {
+                const res = await fetch('api/youtube_download.php?jobId=' + jobId);
+                const data = await res.json();
+                if (data.status === 'complete' && data.song) {
+                    clearInterval(poll);
+                    hideYouTubeProgress();
+                    showToast('YouTube descargado: ' + data.song.title);
+                    await tryPlaySong(data.song);
+                    updateHeartsDisplay();
+                    updateStorageStats();
+                } else if (data.status === 'error') {
+                    clearInterval(poll);
+                    hideYouTubeProgress();
+                    showErrorModal(data.error || 'Error en descarga YouTube');
+                } else {
+                    const pct = Math.min(95, Math.round((attempts / 90) * 100));
+                    showYouTubeProgress(`Descargando... ${pct}%`);
+                }
+                if (attempts >= 90) {
+                    clearInterval(poll);
+                    hideYouTubeProgress();
+                    showErrorModal('Timeout: la descarga tardó demasiado (3 min)');
+                }
+            } catch (e) { /* keep polling */ }
+        }, 2000);
+    } catch (e) {
+        hideYouTubeProgress();
+        showErrorModal('Error de conexión al servidor');
+    }
+}
+
+// === YouTube Search ===
+async function searchYouTube(query) {
+    const resultsContainer = document.getElementById('search-results');
+    if (!resultsContainer) return;
+
+    // Replace the button with loading
+    const btn = resultsContainer.querySelector('.yt-search-btn');
+    if (btn) btn.outerHTML = '<div class="yt-search-loading" style="text-align:center;color:#ef4444;padding:12px;font-size:13px;">Buscando en YouTube...</div>';
+
+    try {
+        const res = await fetch('api/youtube_search.php?q=' + encodeURIComponent(query) + '&limit=8');
+        const results = await res.json();
+
+        const loading = resultsContainer.querySelector('.yt-search-loading');
+        if (loading) loading.remove();
+
+        if (!results || results.length === 0 || results.error) {
+            resultsContainer.insertAdjacentHTML('beforeend',
+                '<p style="text-align:center;color:#ef4444;padding:12px;font-size:12px;">No se encontraron resultados en YouTube</p>');
+            return;
+        }
+
+        let html = '<div class="yt-section-header">Resultados YouTube</div>';
+        results.forEach(r => {
+            const urlSafe = r.url.replace(/'/g, "\\'");
+            const verified = r.verified ? ' ✓' : '';
+            html += `
+                <div class="search-result-item yt-result" onclick="downloadFromYouTube('${urlSafe}'); closeSearch();">
+                    <img class="search-result-thumb" src="${r.thumb}" alt="" onerror="this.src='icon.png'">
+                    <div class="search-result-info">
+                        <div class="search-result-title">${r.title}</div>
+                        <div class="search-result-artist">${r.artist}${verified} <span class="search-badge yt">YouTube</span></div>
+                        <div class="yt-result-meta">${r.viewsStr} vistas · ${r.durationStr}</div>
+                    </div>
+                </div>`;
+        });
+        resultsContainer.insertAdjacentHTML('beforeend', html);
+    } catch (e) {
+        const loading = resultsContainer.querySelector('.yt-search-loading');
+        if (loading) loading.outerHTML = '<p style="text-align:center;color:#ef4444;padding:12px;font-size:12px;">Error buscando en YouTube</p>';
+    }
+}
+
+// === Torrent Search & Download ===
+let activeTorrentPolls = {};
+
+async function searchTorrents(query) {
+    const resultsContainer = document.getElementById('search-results');
+    if (!resultsContainer) return;
+
+    const loadingHtml = '<div class="torrent-loading" style="text-align:center;color:#f97316;padding:12px;font-size:13px;">Buscando en red torrent...</div>';
+    resultsContainer.insertAdjacentHTML('beforeend', loadingHtml);
+
+    try {
+        const res = await fetch('api/torrent_search.php?q=' + encodeURIComponent(query) + '&limit=10');
+        const results = await res.json();
+
+        const loading = resultsContainer.querySelector('.torrent-loading');
+        if (loading) loading.remove();
+
+        if (!results || results.length === 0) {
+            resultsContainer.insertAdjacentHTML('beforeend',
+                '<p style="text-align:center;color:#f97316;padding:12px;font-size:12px;">No se encontraron torrents</p>');
+            return;
+        }
+
+        let html = '<div class="torrent-section-header">Resultados Torrent</div>';
+        results.forEach(r => {
+            const magnetEncoded = encodeURIComponent(r.magnet);
+            const titleSafe = (r.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            html += `
+                <div class="search-result-item torrent-result">
+                    <div class="torrent-icon" onclick="downloadTorrent('${magnetEncoded}', '${titleSafe}')">&#x2B07;</div>
+                    <div class="search-result-info" onclick="downloadTorrent('${magnetEncoded}', '${titleSafe}')">
+                        <div class="search-result-title">${r.title}</div>
+                        <div class="search-result-artist">
+                            ${r.size || ''}
+                            ${r.seeders ? ' <span class="seed-count">&#x25B2; ' + r.seeders + ' seeds</span>' : ''}
+                            <span class="search-badge torrent">${r.source}</span>
+                        </div>
+                    </div>
+                </div>`;
+        });
+
+        resultsContainer.insertAdjacentHTML('beforeend', html);
+    } catch (e) {
+        const loading = resultsContainer.querySelector('.torrent-loading');
+        if (loading) loading.remove();
+        resultsContainer.insertAdjacentHTML('beforeend',
+            '<p style="text-align:center;color:#ef4444;padding:12px;font-size:12px;">Error buscando torrents</p>');
+    }
+}
+
+// Progress is only shown in the search modal downloads list
+function showTorrentProgress(title, status, progress, details) {
+    // No-op: progress shown only via search popup polling
+    updateDownloadBadge(Object.keys(activeTorrentPolls).length);
+}
+
+function hideTorrentProgress() {
+    updateDownloadBadge(Object.keys(activeTorrentPolls).length);
+}
+
+async function downloadTorrent(encodedMagnet, title) {
+    const magnet = decodeURIComponent(encodedMagnet);
+    closeSearch();
+    showToast('Descarga iniciada: ' + (title || 'Torrent').substring(0, 40));
+    updateDownloadBadge(Object.keys(activeTorrentPolls).length + 1);
+
+    try {
+        const res = await fetch('api/torrent_download.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({magnet, title})
+        });
+        const data = await res.json();
+        if (!data.success) {
+            hideTorrentProgress();
+            showToast(data.error || 'Error al iniciar descarga');
+            return;
+        }
+
+        const jobId = data.jobId;
+        let attempts = 0;
+
+        // Polling
+        activeTorrentPolls[jobId] = setInterval(async () => {
+            attempts++;
+            try {
+                const sr = await fetch('api/torrent_download.php?jobId=' + jobId);
+                const s = await sr.json();
+
+                if (s.status === 'complete') {
+                    clearInterval(activeTorrentPolls[jobId]);
+                    delete activeTorrentPolls[jobId];
+                    hideTorrentProgress();
+
+                    if (s.song) {
+                        // Reload library to pick up new songs
+                        if (typeof loadSavedSongs === 'function') await loadSavedSongs();
+                        playSong(s.song);
+                        const total = s.totalSongs || 1;
+                        showToast(total > 1 ? total + ' canciones descargadas' : 'Descarga completada');
+                        updateStorageStats();
+                    }
+                } else if (s.status === 'error') {
+                    clearInterval(activeTorrentPolls[jobId]);
+                    delete activeTorrentPolls[jobId];
+                    hideTorrentProgress();
+                    showToast(s.error || 'Error en descarga torrent');
+                } else {
+                    let details = '';
+                    if (s.downloaded && s.total) details = s.downloaded + ' / ' + s.total;
+                    if (s.speed) details += ' @ ' + s.speed + '/s';
+                    showTorrentProgress(title, s.status, s.progress || 0, details);
+                }
+
+                // Safety: 200 attempts = ~10 min
+                if (attempts >= 200) {
+                    clearInterval(activeTorrentPolls[jobId]);
+                    delete activeTorrentPolls[jobId];
+                    hideTorrentProgress();
+                    showToast('Timeout descarga torrent');
+                    try { await fetch('api/torrent_download.php?cancel=' + jobId); } catch(e) {}
+                }
+            } catch (e) { /* keep polling */ }
+        }, 3000);
+
+    } catch (e) {
+        hideTorrentProgress();
+        showToast('Error de conexion');
+    }
+}
+
+// Legacy fallback
+function openMagnet(encodedMagnet) {
+    downloadTorrent(encodedMagnet, 'Torrent');
+}
+
+function updateDownloadBadge(count) {
+    const badge = document.getElementById('dl-count');
+    if (!badge) return;
+    if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = '';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// Resume active torrent downloads after page reload
+async function resumeActiveDownloads() {
+    try {
+        const res = await fetch('api/torrent_download.php?list');
+        const data = await res.json();
+        if (!data.success || !data.jobs || data.jobs.length === 0) {
+            updateDownloadBadge(0);
+            return;
+        }
+        updateDownloadBadge(data.jobs.length);
+
+        // Resume polling for each active job
+        data.jobs.forEach(job => {
+            const jobId = job.jobId;
+            const title = job.title || 'Torrent';
+            if (activeTorrentPolls[jobId]) return; // Already polling
+
+            showTorrentProgress(title, job.status, job.progress || 0, '');
+
+            // Cancel button
+            const cancelBtn = document.getElementById('torrent-cancel-btn');
+            if (cancelBtn) {
+                cancelBtn.onclick = async () => {
+                    if (activeTorrentPolls[jobId]) clearInterval(activeTorrentPolls[jobId]);
+                    delete activeTorrentPolls[jobId];
+                    hideTorrentProgress();
+                    try { await fetch('api/torrent_download.php?cancel=' + jobId); } catch(e) {}
+                    showToast('Descarga cancelada');
+                };
+            }
+
+            let attempts = 0;
+            activeTorrentPolls[jobId] = setInterval(async () => {
+                attempts++;
+                try {
+                    const sr = await fetch('api/torrent_download.php?jobId=' + jobId);
+                    const s = await sr.json();
+
+                    if (s.status === 'complete') {
+                        clearInterval(activeTorrentPolls[jobId]);
+                        delete activeTorrentPolls[jobId];
+                        hideTorrentProgress();
+                        if (s.song) {
+                            if (typeof loadSavedSongs === 'function') await loadSavedSongs();
+                            playSong(s.song);
+                            showToast(s.totalSongs > 1 ? s.totalSongs + ' canciones descargadas' : 'Descarga completada');
+                            updateStorageStats();
+                        }
+                    } else if (s.status === 'error') {
+                        clearInterval(activeTorrentPolls[jobId]);
+                        delete activeTorrentPolls[jobId];
+                        hideTorrentProgress();
+                        showToast(s.error || 'Error en descarga torrent');
+                    } else {
+                        let details = '';
+                        if (s.downloaded && s.total) details = s.downloaded + ' / ' + s.total;
+                        if (s.speed) details += ' @ ' + s.speed + '/s';
+                        showTorrentProgress(title, s.status, s.progress || 0, details);
+                    }
+
+                    if (attempts >= 200) {
+                        clearInterval(activeTorrentPolls[jobId]);
+                        delete activeTorrentPolls[jobId];
+                        hideTorrentProgress();
+                    }
+                } catch (e) { /* keep polling */ }
+            }, 3000);
+        });
+    } catch (e) { /* ignore */ }
+}
+
+// === Handle URL params (from share-receiver redirect) ===
+function handleUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+
+    // ?play=songId - play a specific song from library
+    const playId = params.get('play');
+    if (playId) {
+        window.history.replaceState({}, '', window.location.pathname);
+        getAllSongs().then(songs => {
+            const song = songs.find(s => s.id === playId);
+            if (song) {
+                tryPlaySong(song).then(() => updateHeartsDisplay());
+            } else {
+                showToast('Cancion no encontrada');
+            }
+        });
+        return true;
+    }
+
+    // ?playUrl=url - play a direct audio URL
+    const playUrl = params.get('playUrl');
+    if (playUrl) {
+        window.history.replaceState({}, '', window.location.pathname);
+        const song = { id: 'url-' + Date.now(), title: 'Audio compartido', artist: 'Compartido', url: playUrl, thumb: 'icon.png', genre: 'Compartido' };
+        tryPlaySong(song).then(() => updateHeartsDisplay());
+        return true;
+    }
+
+    // ?ytdl=url - download YouTube
+    const ytdl = params.get('ytdl');
+    if (ytdl) {
+        window.history.replaceState({}, '', window.location.pathname);
+        downloadFromYouTube(ytdl);
+        return true;
+    }
+
+    return false;
+}
+
+// === Pull-to-Refresh ===
+function initPullToRefresh() {
+    let startY = 0;
+    let pulling = false;
+    let indicator = null;
+    const threshold = 80;
+
+    document.addEventListener('touchstart', (e) => {
+        if (window.scrollY === 0 && !document.getElementById('ranking-panel') && !document.getElementById('search-overlay')?.classList.contains('active')) {
+            startY = e.touches[0].clientY;
+            pulling = true;
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        if (!pulling) return;
+        const dy = e.touches[0].clientY - startY;
+        if (dy < 0) { pulling = false; removeIndicator(); return; }
+        if (dy > 10) {
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'pull-refresh-indicator';
+                indicator.className = 'pull-refresh-indicator';
+                document.body.appendChild(indicator);
+            }
+            const progress = Math.min(dy / threshold, 1);
+            indicator.style.transform = `translateY(${Math.min(dy * 0.5, 60)}px)`;
+            indicator.style.opacity = progress;
+            indicator.textContent = progress >= 1 ? '↻ Soltar para actualizar' : '↓ Arrastra para actualizar';
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => {
+        if (!pulling) return;
+        pulling = false;
+        const ind = document.getElementById('pull-refresh-indicator');
+        if (ind && ind.textContent.includes('Soltar')) {
+            ind.textContent = '↻ Actualizando...';
+            refreshApp().then(() => removeIndicator());
+        } else {
+            removeIndicator();
+        }
+    });
+
+    function removeIndicator() {
+        const ind = document.getElementById('pull-refresh-indicator');
+        if (ind) { ind.style.opacity = '0'; setTimeout(() => ind.remove(), 200); }
+        indicator = null;
+    }
+}
+
+async function refreshApp() {
+    showToast('↻ Actualizando...');
+    try {
+        unifiedHearts = await loadHeartsFromServer();
+        updateHeartsDisplay();
+        updateStorageStats();
+        // Refrescar ranking si está abierto
+        const panel = document.getElementById('ranking-panel');
+        if (panel) { panel.remove(); await openRanking(); }
+        showToast('Actualizado');
+    } catch (e) {
+        showToast('Error al actualizar');
+    }
+}
+
 // === Init ===
 document.addEventListener('DOMContentLoaded', async () => {
     // Init Google Sign-In
     initGoogleSignIn();
 
-    // Si no hay sesión guardada, mostrar modal obligatorio
+    // Check app version first (native app only), then show login if needed
     const savedToken = localStorage.getItem('sunoplay-auth-token');
     if (!savedToken) {
-        showWelcomeModal();
+        const updateData = await checkAppVersion();
+        if (updateData) {
+            showUpdateModal(updateData);
+            // Login modal will show after user dismisses update (unless force_update)
+        } else {
+            showWelcomeModal();
+        }
+    } else {
+        // User already logged in — show What's New if there are new features
+        showWhatsNew();
     }
 
     // Auth button (header) - muestra modal para login o logout
@@ -1280,11 +2341,85 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateVolumeUI();
     });
 
-    // Audio ended -> +1 heart and next
-    mainAudio.addEventListener('ended', () => handleVote('like', true));
+    // Audio ended -> +1 heart and next (only for web/PWA — native handles via nativeBridge.onEvent)
+    if (!isNativeApp) {
+        mainAudio.addEventListener('ended', () => handleVote('like', true));
+
+        // Global error handler: if audio fails mid-playback, skip to next
+        mainAudio.addEventListener('error', () => {
+            if (isPlaying && currentSong && !isLoading) {
+                isPlaying = false;
+                updatePlayerUI();
+                showToast("Error de audio. Saltando...");
+                setTimeout(() => playNext(false), 1500);
+            }
+        });
+
+        // Stalled handler: if audio stalls for too long, try to recover
+        let stallTimer = null;
+        mainAudio.addEventListener('stalled', () => {
+            if (!isPlaying || isLoading) return;
+            stallTimer = setTimeout(() => {
+                if (isPlaying && mainAudio.paused && currentSong) {
+                    mainAudio.load();
+                    mainAudio.play().catch(() => {
+                        isPlaying = false;
+                        updatePlayerUI();
+                        showToast("Conexión perdida. Saltando...");
+                        setTimeout(() => playNext(false), 1500);
+                    });
+                }
+            }, 5000);
+        });
+        mainAudio.addEventListener('playing', () => {
+            if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; }
+        });
+    }
+
+    // Show version & platform in footer
+    const footerCredit = document.getElementById('footer-credit');
+    if (footerCredit) {
+        let platform = 'Web';
+        let ver = APP_VERSION;
+        if (isNativeApp) {
+            const uaMatch = navigator.userAgent.match(/SunoPlayApp\/([\d.]+)/);
+            ver = uaMatch ? uaMatch[1] : ver;
+            // Detect Android Auto (connected via MediaBrowserService)
+            platform = 'Android';
+        }
+        footerCredit.textContent = `ChemaDev · v${ver} · ${platform}`;
+    }
+
+    // Pass auth token to native bridge
+    if (isNativeApp && window.AndroidBridge && authToken) {
+        try { AndroidBridge.setAuthToken(authToken); } catch (e) {}
+    }
+
+    // Sync native state if app was already playing before WebView loaded
+    if (isNativeApp && window.AndroidBridge) {
+        try {
+            const stateJson = AndroidBridge.getCurrentState();
+            if (stateJson) {
+                const st = JSON.parse(stateJson);
+                if (st.state === 'playing' || st.state === 'paused') {
+                    currentSong = { id: st.mediaId || '', title: st.title || '', artist: st.artist || '', url: '', thumb: st.artUri || 'icon.png', genre: '' };
+                    isPlaying = st.state === 'playing';
+                    nativeState.position = (st.position || 0) / 1000;
+                    nativeState.duration = (st.duration || 0) / 1000;
+                    playerTitle.textContent = st.title || 'ChemPlay';
+                    playerArtist.textContent = st.artist || '';
+                    if (st.artUri) playerThumb.src = st.artUri;
+                    updatePlayerUI();
+                    updateNativeSeekBar();
+                    updateHeartsDisplay();
+                }
+            }
+        } catch (e) { /* no state yet */ }
+    }
 
     // Search
     playerTitle?.addEventListener('click', openSearch);
+    document.getElementById('search-btn')?.addEventListener('click', openSearch);
     document.getElementById('close-search-btn')?.addEventListener('click', closeSearch);
     document.getElementById('search-input')?.addEventListener('input', (e) => performSearch(e.target.value));
     document.getElementById('search-overlay')?.addEventListener('click', (e) => {
@@ -1306,9 +2441,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     initAndroidBanner();
     updateStorageStats();
 
+    // Handle URL params from share-receiver redirects
+    handleUrlParams();
+
+    // Resume any active torrent downloads (survives page reload)
+    resumeActiveDownloads();
+
     // Actualizar positionState periódicamente para lock screen / Bluetooth
     mainAudio.addEventListener('timeupdate', updatePositionState);
     mainAudio.addEventListener('durationchange', updatePositionState);
+
+    // Pull-to-refresh
+    initPullToRefresh();
 });
 
 // === Android APK Download Banner ===
@@ -1330,10 +2474,10 @@ function initAndroidBanner() {
         banner.innerHTML = `
             <div class="android-banner-icon">📱</div>
             <div class="android-banner-text">
-                <strong>Suno Play para Android</strong>
+                <strong>ChemPlay para Android</strong>
                 <span>App nativa con Android Auto y controles Bluetooth</span>
             </div>
-            <a href="sunoplay.apk" class="android-banner-btn" download="SunoPlay.apk">Descargar</a>
+            <a href="chemplay-v3.2.0.apk" class="android-banner-btn" download="ChemPlay-v3.2.0.apk">Descargar</a>
             <button class="android-banner-close" id="android-banner-close">&times;</button>
         `;
         document.body.appendChild(banner);

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChemPlay - Recibiendo...</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #050507;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { text-align: center; max-width: 360px; width: 100%; }
+        .icon { font-size: 48px; margin-bottom: 16px; }
+        h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+        .status { color: #aaa; font-size: 14px; margin-bottom: 24px; min-height: 20px; }
+        .progress-bar {
+            width: 100%; height: 4px; background: rgba(255,255,255,0.1);
+            border-radius: 2px; overflow: hidden; margin-bottom: 24px;
+        }
+        .progress-fill {
+            height: 100%; width: 0%; border-radius: 2px;
+            background: linear-gradient(90deg, #8b5cf6, #ec4899);
+            transition: width 0.3s ease;
+        }
+        .error { color: #ef4444; font-size: 13px; margin-top: 12px; }
+        a.back { color: #666; font-size: 13px; text-decoration: none; margin-top: 20px; display: inline-block; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .pulsing { animation: pulse 1.5s ease infinite; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon" id="icon">🎵</div>
+        <h2 id="title">Recibiendo...</h2>
+        <p class="status pulsing" id="status">Procesando contenido compartido</p>
+        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+        <p class="error" id="error" style="display:none"></p>
+        <a href="/sunoplay/" class="back" id="back-link" style="display:none">Volver a ChemPlay</a>
+    </div>
+
+    <script>
+    const statusEl = document.getElementById('status');
+    const progressEl = document.getElementById('progress');
+    const iconEl = document.getElementById('icon');
+    const titleEl = document.getElementById('title');
+    const errorEl = document.getElementById('error');
+    const backLink = document.getElementById('back-link');
+
+    function setProgress(pct) { progressEl.style.width = pct + '%'; }
+    function showError(msg) {
+        statusEl.classList.remove('pulsing');
+        statusEl.textContent = '';
+        errorEl.textContent = msg;
+        errorEl.style.display = 'block';
+        backLink.style.display = 'inline-block';
+        iconEl.textContent = '❌';
+    }
+    function redirect(songId) {
+        window.location.href = '/sunoplay/?play=' + encodeURIComponent(songId);
+    }
+
+    // Detect YouTube URL
+    function isYouTubeUrl(text) {
+        return /^https?:\/\/(www\.)?(youtube\.com|youtu\.be|music\.youtube\.com|m\.youtube\.com)\//i.test(text);
+    }
+
+    // Upload audio file
+    async function uploadAudio(file) {
+        titleEl.textContent = 'Subiendo audio...';
+        statusEl.textContent = file.name;
+        setProgress(20);
+
+        const formData = new FormData();
+        formData.append('audio', file);
+
+        try {
+            const res = await fetch('/sunoplay/api/upload_song.php', {
+                method: 'POST',
+                body: formData
+            });
+            setProgress(80);
+            const data = await res.json();
+            if (data.success && data.song) {
+                setProgress(100);
+                iconEl.textContent = '✅';
+                titleEl.textContent = 'Guardado';
+                statusEl.textContent = data.song.title;
+                statusEl.classList.remove('pulsing');
+                setTimeout(() => redirect(data.song.id), 1500);
+            } else {
+                showError(data.error || 'Error al subir el archivo');
+            }
+        } catch (e) {
+            showError('Error de conexi\u00f3n: ' + e.message);
+        }
+    }
+
+    // Download from YouTube
+    async function downloadYouTube(url) {
+        titleEl.textContent = 'Descargando de YouTube...';
+        statusEl.textContent = url;
+        setProgress(10);
+
+        try {
+            // Start download
+            const startRes = await fetch('/sunoplay/api/youtube_download.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url })
+            });
+            const startData = await startRes.json();
+
+            if (!startData.success) {
+                showError(startData.error || 'No se pudo iniciar la descarga');
+                return;
+            }
+
+            const jobId = startData.jobId;
+            setProgress(30);
+
+            // Poll for status
+            let attempts = 0;
+            const maxAttempts = 90; // 3 minutes
+            const poll = setInterval(async () => {
+                attempts++;
+                try {
+                    const pollRes = await fetch('/sunoplay/api/youtube_download.php?jobId=' + jobId);
+                    const pollData = await pollRes.json();
+
+                    if (pollData.status === 'complete' && pollData.song) {
+                        clearInterval(poll);
+                        setProgress(100);
+                        iconEl.textContent = '✅';
+                        titleEl.textContent = 'Descargado';
+                        statusEl.textContent = pollData.song.title;
+                        statusEl.classList.remove('pulsing');
+                        setTimeout(() => redirect(pollData.song.id), 1500);
+                    } else if (pollData.status === 'error') {
+                        clearInterval(poll);
+                        showError(pollData.error || 'Error en la descarga');
+                    } else {
+                        // Still downloading
+                        const pct = Math.min(95, Math.round((attempts / maxAttempts) * 100));
+                        setProgress(pct);
+                        statusEl.textContent = `Descargando audio... ${pct}%`;
+                    }
+
+                    if (attempts >= maxAttempts) {
+                        clearInterval(poll);
+                        showError('Timeout: la descarga tard\u00f3 demasiado');
+                    }
+                } catch (e) {
+                    // Network error, keep trying
+                }
+            }, 2000);
+
+        } catch (e) {
+            showError('Error de conexi\u00f3n: ' + e.message);
+        }
+    }
+
+    // Process shared content
+    async function processShare() {
+        // Check URL params for text/url share
+        const params = new URLSearchParams(window.location.search);
+        const sharedText = params.get('text') || params.get('url') || params.get('title') || '';
+
+        // Check for files via FormData (POST from Web Share Target)
+        if (window.location.search === '' && document.referrer === '') {
+            // Might be a POST share - check for pending file in service worker
+        }
+
+        // Text share: check if YouTube URL
+        if (sharedText) {
+            const urlMatch = sharedText.match(/https?:\/\/[^\s]+/);
+            const url = urlMatch ? urlMatch[0] : sharedText;
+
+            if (isYouTubeUrl(url)) {
+                await downloadYouTube(url);
+                return;
+            }
+
+            // Not YouTube - try to detect if it's an audio URL
+            if (/\.(mp3|m4a|ogg|wav|flac|aac)(\?|$)/i.test(url)) {
+                titleEl.textContent = 'Abriendo audio...';
+                window.location.href = '/sunoplay/?playUrl=' + encodeURIComponent(url);
+                return;
+            }
+
+            // Unknown text shared
+            showError('No se reconoce el contenido: ' + sharedText.substring(0, 100));
+            return;
+        }
+
+        // No content detected
+        showError('No se recibi\u00f3 contenido para procesar');
+    }
+
+    // Handle POST with file (from Web Share Target API)
+    // The service worker will intercept the POST and pass data via URL
+    // But as a fallback, we also handle GET params
+    processShare();
+    </script>
+</body>
+</html>

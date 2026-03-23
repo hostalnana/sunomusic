@@ -1,8 +1,8 @@
 1<?xml version="1.0" encoding="utf-8"?>
 2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
 3    package="com.chemadev.sunoplay"
-4    android:versionCode="1"
-5    android:versionName="1.0" >
+4    android:versionCode="10"
+5    android:versionName="3.2.0" >
 6
 7    <uses-sdk
 8        android:minSdkVersion="23"
@@ -36,7 +36,7 @@
 21-->[androidx.core:core:1.9.0] /home/chemazener/.gradle/caches/transforms-3/75919e89ab9acfe92b320b18b5eba894/transformed/core-1.9.0/AndroidManifest.xml:26:22-94
 22
 23    <application
-23-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:10:5-44:19
+23-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:10:5-63:19
 24        android:allowBackup="true"
 24-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:11:9-35
 25        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
@@ -53,7 +53,7 @@
 31
 32        <!-- Main Activity: Native UI -->
 33        <activity
-33-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:18:9-27:20
+33-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:18:9-46:20
 34            android:name="com.chemadev.sunoplay.MainActivity"
 34-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:19:13-41
 35            android:configChanges="orientation|screenSize"
@@ -72,54 +72,105 @@
 41-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:25:17-77
 41-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:25:27-74
 42            </intent-filter>
-43        </activity>
-44
-45        <!-- Music Service for Android Auto + Notification -->
-46        <service
-46-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:30:9-37:19
-47            android:name="com.chemadev.sunoplay.MusicService"
-47-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:31:13-41
-48            android:exported="true"
-48-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:32:13-36
-49            android:foregroundServiceType="mediaPlayback" >
-49-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:33:13-58
-50            <intent-filter>
-50-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:34:13-36:29
-51                <action android:name="android.media.browse.MediaBrowserService" />
-51-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:35:17-83
-51-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:35:25-80
-52            </intent-filter>
-53        </service>
-54
-55        <!-- Android Auto declaration -->
-56        <meta-data
-56-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:40:9-42:59
-57            android:name="com.google.android.gms.car.application"
-57-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:41:13-66
-58            android:resource="@xml/automotive_app_desc" />
-58-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:42:13-56
+43            <!-- Handle auth callback from system browser -->
+44            <intent-filter>
+44-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:28:13-33:29
+45                <action android:name="android.intent.action.VIEW" />
+45-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:29:17-69
+45-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:29:25-66
+46
+47                <category android:name="android.intent.category.DEFAULT" />
+47-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:30:17-76
+47-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:30:27-73
+48                <category android:name="android.intent.category.BROWSABLE" />
+48-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:31:17-78
+48-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:31:27-75
+49
+50                <data
+50-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:32:17-71
+51                    android:host="auth"
+51-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:32:49-68
+52                    android:scheme="sunoplay" />
+52-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:32:23-48
+53            </intent-filter>
+54            <!-- Receive shared audio files -->
+55            <intent-filter>
+55-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:35:13-39:29
+56                <action android:name="android.intent.action.SEND" />
+56-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:36:17-69
+56-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:36:25-66
+57
+58                <category android:name="android.intent.category.DEFAULT" />
+58-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:30:17-76
+58-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:30:27-73
 59
-60        <provider
-60-->[androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:24:9-32:20
-61            android:name="androidx.startup.InitializationProvider"
-61-->[androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:25:13-67
-62            android:authorities="com.chemadev.sunoplay.androidx-startup"
-62-->[androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:26:13-68
-63            android:exported="false" >
-63-->[androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:27:13-37
-64            <meta-data
-64-->[androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:29:13-31:52
-65                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-65-->[androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:30:17-75
-66                android:value="androidx.startup" />
-66-->[androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:31:17-49
-67            <meta-data
-67-->[androidx.lifecycle:lifecycle-process:2.4.1] /home/chemazener/.gradle/caches/transforms-3/644bbf8f5e2ecfe65e8d027b17221503/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:31:13-33:52
-68                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-68-->[androidx.lifecycle:lifecycle-process:2.4.1] /home/chemazener/.gradle/caches/transforms-3/644bbf8f5e2ecfe65e8d027b17221503/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:32:17-78
-69                android:value="androidx.startup" />
-69-->[androidx.lifecycle:lifecycle-process:2.4.1] /home/chemazener/.gradle/caches/transforms-3/644bbf8f5e2ecfe65e8d027b17221503/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:33:17-49
-70        </provider>
-71    </application>
-72
-73</manifest>
+60                <data android:mimeType="audio/*" />
+60-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:32:17-71
+60-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:38:23-49
+61            </intent-filter>
+62            <!-- Receive shared text (YouTube links, etc) -->
+63            <intent-filter>
+63-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:41:13-45:29
+64                <action android:name="android.intent.action.SEND" />
+64-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:36:17-69
+64-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:36:25-66
+65
+66                <category android:name="android.intent.category.DEFAULT" />
+66-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:30:17-76
+66-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:30:27-73
+67
+68                <data android:mimeType="text/plain" />
+68-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:32:17-71
+68-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:38:23-49
+69            </intent-filter>
+70        </activity>
+71
+72        <!-- Music Service for Android Auto + Notification -->
+73        <service
+73-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:49:9-56:19
+74            android:name="com.chemadev.sunoplay.MusicService"
+74-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:50:13-41
+75            android:exported="true"
+75-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:51:13-36
+76            android:foregroundServiceType="mediaPlayback" >
+76-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:52:13-58
+77            <intent-filter>
+77-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:53:13-55:29
+78                <action android:name="android.media.browse.MediaBrowserService" />
+78-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:54:17-83
+78-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:54:25-80
+79            </intent-filter>
+80        </service>
+81
+82        <!-- Android Auto declaration -->
+83        <meta-data
+83-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:59:9-61:59
+84            android:name="com.google.android.gms.car.application"
+84-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:60:13-66
+85            android:resource="@xml/automotive_app_desc" />
+85-->/var/www/html/lomastrend/sunoplay/android/app/src/main/AndroidManifest.xml:61:13-56
+86
+87        <provider
+87-->[androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:24:9-32:20
+88            android:name="androidx.startup.InitializationProvider"
+88-->[androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:25:13-67
+89            android:authorities="com.chemadev.sunoplay.androidx-startup"
+89-->[androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:26:13-68
+90            android:exported="false" >
+90-->[androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:27:13-37
+91            <meta-data
+91-->[androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:29:13-31:52
+92                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+92-->[androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:30:17-75
+93                android:value="androidx.startup" />
+93-->[androidx.emoji2:emoji2:1.2.0] /home/chemazener/.gradle/caches/transforms-3/4db699d37aeb53b95d33ff3db7cc3cca/transformed/emoji2-1.2.0/AndroidManifest.xml:31:17-49
+94            <meta-data
+94-->[androidx.lifecycle:lifecycle-process:2.4.1] /home/chemazener/.gradle/caches/transforms-3/644bbf8f5e2ecfe65e8d027b17221503/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:31:13-33:52
+95                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+95-->[androidx.lifecycle:lifecycle-process:2.4.1] /home/chemazener/.gradle/caches/transforms-3/644bbf8f5e2ecfe65e8d027b17221503/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:32:17-78
+96                android:value="androidx.startup" />
+96-->[androidx.lifecycle:lifecycle-process:2.4.1] /home/chemazener/.gradle/caches/transforms-3/644bbf8f5e2ecfe65e8d027b17221503/transformed/lifecycle-process-2.4.1/AndroidManifest.xml:33:17-49
+97        </provider>
+98    </application>
+99
+100</manifest>
