@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once __DIR__ . '/tag_helper.php';
+require_once __DIR__ . '/storage_helper.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
 if (!$data) {
@@ -40,6 +41,13 @@ foreach ($library as &$song) {
 }
 unset($song);
 
+
+// Check storage limit before downloading
+$storageError = checkStorageOrFail();
+if ($storageError) {
+    echo $storageError;
+    exit;
+}
 
 // Descargar Audio mediante cURL
 $audioExt = pathinfo(parse_url($audioUrl, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'mp3';
@@ -98,5 +106,18 @@ $newSong['tags'] = generateTags($newSong);
 
 array_unshift($library, $newSong);
 file_put_contents($libFile, json_encode($library, JSON_PRETTY_PRINT));
+
+// Asignar 1 heart a todos los usuarios para la canción nueva
+try {
+    require_once __DIR__ . '/db_config.php';
+    $pdo = getSPConnection();
+    $users = $pdo->query('SELECT id FROM sunoplay_users')->fetchAll(PDO::FETCH_COLUMN);
+    $stmt = $pdo->prepare('INSERT IGNORE INTO sunoplay_hearts (user_id, song_id, hearts) VALUES (?, ?, 1)');
+    foreach ($users as $uid) {
+        $stmt->execute([$uid, $id]);
+    }
+} catch (Exception $e) {
+    // No bloquear el guardado si falla la asignación de hearts
+}
 
 echo json_encode(['success' => true, 'song' => $newSong]);

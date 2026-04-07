@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once __DIR__ . '/tag_helper.php';
+require_once __DIR__ . '/storage_helper.php';
 
 $allowedMimes = ['audio/mpeg', 'audio/mp4', 'audio/ogg', 'audio/wav', 'audio/flac', 'audio/aac',
                  'audio/x-m4a', 'audio/mp3', 'audio/x-wav', 'audio/webm', 'application/octet-stream'];
@@ -18,6 +19,13 @@ $file = $_FILES['audio'];
 // Validate size
 if ($file['size'] > $maxSize) {
     echo json_encode(['success' => false, 'error' => 'File too large (max 50MB)']);
+    exit;
+}
+
+// Check storage limit before saving
+$storageError = checkStorageOrFail($file['size']);
+if ($storageError) {
+    echo $storageError;
     exit;
 }
 

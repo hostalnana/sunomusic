@@ -285,6 +285,59 @@ public class ApiClient {
     }
 
     // ========================
+    // Surprise from specific source (suno/youtube/torrent/random)
+    // ========================
+    public void fetchSurpriseFromSource(String source, final OnResultListener<Song> listener) {
+        Request request = new Request.Builder()
+                .url(API_BASE + "surprise.php?source=" + source)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                Song song = null;
+                try {
+                    String body = response.body().string();
+                    Log.d(TAG, "Surprise response: " + body.substring(0, Math.min(body.length(), 200)));
+                    JSONObject json = new JSONObject(body);
+                    if (json.optBoolean("success", false)) {
+                        JSONObject track = json.optJSONObject("track");
+                        if (track != null) {
+                            String id = track.optString("id", "surprise-" + System.currentTimeMillis());
+                            String title = track.optString("title", "Sorpresa");
+                            String artist = track.optString("artist", source);
+                            String url = track.optString("url", "");
+                            String thumb = track.optString("thumb", "");
+                            String genre = json.optString("query", source);
+
+                            if (!url.isEmpty()) {
+                                song = new Song();
+                                song.id = id;
+                                song.title = title;
+                                song.artist = artist;
+                                song.audioUrl = url;
+                                song.thumbUrl = thumb;
+                                song.genre = genre;
+                                song.hearts = 0;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error parsing surprise", e);
+                }
+                Song finalSong = song;
+                handler.post(() -> listener.onResult(finalSong));
+            }
+
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Log.e(TAG, "Error fetching surprise: " + e.getMessage(), e);
+                handler.post(() -> listener.onResult(null));
+            }
+        });
+    }
+
+    // ========================
     // Internal endpoint fetch
     // ========================
     private void fetchFromEndpoint(String endpoint, final OnResultListener<List<Song>> listener) {

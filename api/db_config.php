@@ -73,6 +73,13 @@ function getOrCreateUser($googleData) {
 function getAuthUserId() {
     $headers = getallheaders();
     $token = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    // Fallback: Apache pasa el header via env var cuando se usa RewriteRule
+    if (empty($token) && !empty($_SERVER['HTTP_AUTHORIZATION'])) {
+        $token = $_SERVER['HTTP_AUTHORIZATION'];
+    }
+    if (empty($token) && !empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+        $token = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+    }
     $token = str_replace('Bearer ', '', $token);
 
     if (empty($token) || strlen($token) < 20) return null;

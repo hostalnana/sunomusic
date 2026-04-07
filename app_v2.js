@@ -215,6 +215,14 @@ window.nativeBridge = {
             case 'songComplete':
                 handleVote('like', true);
                 break;
+            case 'heartsUpdate':
+                if (data && data.songId) {
+                    unifiedHearts[data.songId] = data.hearts;
+                    updateHeartsDisplay();
+                    const emoji = data.delta > 0 ? '❤️' : '💔';
+                    showToast(`${emoji} ${data.delta > 0 ? '+' : ''}${data.delta} (${data.hearts})`);
+                }
+                break;
             case 'error':
                 isLoading = false;
                 if (loadingIndicator) loadingIndicator.style.display = 'none';
@@ -244,6 +252,17 @@ function initGoogleSignIn() {
             currentUser = savedUser;
             showUserLoggedIn();
             hideWelcomeModal();
+            // Refrescar perfil si falta email (usuarios antiguos)
+            if (!savedUser.email) {
+                fetch('api/me.php', { headers: { 'Authorization': 'Bearer ' + savedToken } })
+                    .then(r => r.json()).then(d => {
+                        if (d.success && d.user) {
+                            currentUser = { ...currentUser, ...d.user };
+                            localStorage.setItem('sunoplay-user', JSON.stringify(currentUser));
+                            showUserLoggedIn();
+                        }
+                    }).catch(() => {});
+            }
             return;
         }
     }
@@ -346,9 +365,17 @@ function showUserLoggedIn() {
         userInfo.style.display = 'flex';
         if (userAvatar) userAvatar.src = currentUser.avatar || '';
         if (authBtn) authBtn.style.display = 'none';
+        // Admin: solo chemazener@gmail.com
+        const adminBtn = document.getElementById('admin-btn');
+        if (adminBtn) {
+            const isAdmin = (currentUser.email || '').toLowerCase() === 'chemazener@gmail.com';
+            adminBtn.style.display = isAdmin ? 'flex' : 'none';
+        }
     } else if (authBtn) {
         authBtn.style.display = 'flex';
         if (userInfo) userInfo.style.display = 'none';
+        const adminBtn = document.getElementById('admin-btn');
+        if (adminBtn) adminBtn.style.display = 'none';
     }
 }
 
@@ -424,14 +451,14 @@ function hideWelcomeModal() {
 }
 
 // === What's New (Novedades) ===
-const APP_VERSION = '3.2.0';
+const APP_VERSION = '3.4.0';
 const WHATS_NEW_FEATURES = [
-    { icon: '🔍', title: 'Búsqueda mejorada', desc: 'Busca desde 2 caracteres con coincidencia parcial. YouTube y Torrents siempre visibles.' },
-    { icon: '🎵', title: 'Ahora somos ChemPlay', desc: 'Nueva identidad, misma potencia. Tu reproductor premium by ChemaDev.' },
-    { icon: '🏷️', title: 'Sistema de etiquetas', desc: 'Organiza tu biblioteca con tags: fuente, género, estilo. Filtra por múltiples etiquetas.' },
-    { icon: '🎯', title: 'Selector de fuente', desc: 'Elige entre Suno AI, YouTube o Torrent al descubrir música nueva.' },
-    { icon: '❤️', title: 'Favoritos con corazón', desc: 'Dale ❤️ o 💔 a las canciones. Saltar no resta corazones.' },
-    { icon: '🚗', title: 'Android Auto mejorado', desc: 'Favoritos, búsqueda por voz y caché de siguiente canción.' },
+    { icon: '💔', title: 'Dislike inteligente', desc: 'Si una canción llega a -1 corazones se elimina de la cola y salta automáticamente.' },
+    { icon: '🎲', title: 'Botón Al Azar', desc: 'Salta a una canción aleatoria de la cola actual.' },
+    { icon: '✨', title: 'Botón Sorpresa', desc: 'Mezcla toda la biblioteca y reproduce al azar.' },
+    { icon: '❤️', title: 'Corazones visibles', desc: 'Número de corazones visible en Android Auto, notificación y pantalla bloqueada.' },
+    { icon: '🔍', title: 'Búsqueda mejorada', desc: 'Busca desde 2 caracteres. YouTube y Torrents siempre visibles.' },
+    { icon: '🚗', title: 'Android Auto completo', desc: 'Like, dislike, al azar, sorpresa, búsqueda por voz y caché de siguiente canción.' },
     { icon: '⚡', title: 'Reproducción sin cortes', desc: 'La siguiente canción se precarga en segundo plano para transiciones instantáneas.' }
 ];
 
@@ -1573,7 +1600,7 @@ function renderFilteredSongs(songs) {
     if (rankingActiveTags.size > 0) {
         filtered = songs.filter(s => {
             const tags = s.tags || generateTagsJS(s);
-            return [...rankingActiveTags].every(t => tags.includes(t));
+            return [...rankingActiveTags].some(t => tags.includes(t));
         });
     }
     // Sort by hearts descending
@@ -1613,6 +1640,291 @@ async function openRanking() {
     panel.innerHTML = html;
     document.body.appendChild(panel);
     if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// === Admin Panel ===
+let adminData = { users: [], songs: [], filters: { users: new Set(), tags: new Set() } };
+
+async function openAdminPanel() {
+    showToast('Cargando panel admin...');
+    const headers = { 'Authorization': 'Bearer ' + authToken };
+
+    try {
+        const [overviewRes, songsRes] = await Promise.all([
+            fetch('api/admin.php?action=overview', { headers }),
+            fetch('api/admin.php?action=songs', { headers })
+        ]);
+        const overview = await overviewRes.json();
+        const songsData = await songsRes.json();
+
+        if (!overview.success) { showToast('Error: ' + (overview.error || 'no admin')); return; }
+
+        adminData.users = overview.users || [];
+        adminData.songs = songsData.songs || [];
+        adminData.filters.users.clear();
+        adminData.filters.tags.clear();
+
+        renderAdminPanel(overview.library);
+    } catch (e) {
+        showToast('Error cargando admin');
+    }
+}
+
+function renderAdminPanel(libStats) {
+    // Remove previous
+    document.getElementById('admin-panel-wrap')?.remove();
+
+    const wrap = document.createElement('div');
+    wrap.id = 'admin-panel-wrap';
+    wrap.innerHTML = `
+        <div class="admin-panel">
+            <div class="ranking-handle" onclick="closeAdminPanel()"></div>
+            <div class="admin-header">
+                <h2>Admin</h2>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="ranking-count">${libStats.total} temas | ${libStats.totalSizeMB} MB</span>
+                    <button class="ranking-close-btn" onclick="closeAdminPanel()">✕</button>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h3 class="admin-section-title">Usuarios (${adminData.users.length})</h3>
+                <div class="admin-users-grid">
+                    ${adminData.users.map(u => `
+                        <div class="admin-user-card ${adminData.filters.users.has(u.id) ? 'active' : ''}"
+                             onclick="toggleAdminUserFilter(${u.id})">
+                            <img src="${u.avatar || 'icon.png'}" class="admin-user-avatar" onerror="this.src='icon.png'">
+                            <div class="admin-user-info">
+                                <div class="admin-user-name">${u.name}</div>
+                                <div class="admin-user-meta">${u.total_songs} temas | ${u.total_hearts} ♥</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h3 class="admin-section-title">Filtros por etiqueta</h3>
+                <div class="admin-tags-cloud" id="admin-tags-cloud">
+                    ${renderAdminTagCloud()}
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <div class="admin-songs-header">
+                    <h3 class="admin-section-title" id="admin-songs-title">Canciones</h3>
+                    <button class="admin-cleanup-btn" onclick="adminCleanup()">Limpiar sin ♥</button>
+                </div>
+                <div class="admin-songs-list" id="admin-songs-list">
+                    ${renderAdminSongs()}
+                </div>
+            </div>
+        </div>`;
+
+    document.body.appendChild(wrap);
+}
+
+function renderAdminTagCloud() {
+    const tagCount = {};
+    let noTags = 0;
+    adminData.songs.forEach(s => {
+        const tags = s.tags || [];
+        if (tags.length === 0) noTags++;
+        tags.forEach(t => { tagCount[t] = (tagCount[t] || 0) + 1; });
+    });
+    const sorted = Object.entries(tagCount).sort((a, b) => b[1] - a[1]);
+    // Botón especial "Sin etiquetas"
+    const noTagActive = adminData.filters.tags.has('__NO_TAGS__') ? 'active' : '';
+    let html = `<button class="admin-tag ${noTagActive}" style="border-color:rgba(239,68,68,0.3);color:#ef4444;" onclick="toggleAdminTagFilter('__NO_TAGS__')">Sin etiquetas <span>(${noTags})</span></button>`;
+    html += sorted.map(([tag, count]) => {
+        const active = adminData.filters.tags.has(tag) ? 'active' : '';
+        return `<button class="admin-tag ${active}" onclick="toggleAdminTagFilter('${tag.replace(/'/g, "\\'")}')">${tag} <span>(${count})</span></button>`;
+    }).join('');
+    return html;
+}
+
+function renderAdminSongs() {
+    let songs = adminData.songs;
+
+    // Filtrar por usuarios seleccionados
+    if (adminData.filters.users.size > 0) {
+        songs = songs.filter(s =>
+            s.userHearts.some(h => adminData.filters.users.has(h.userId) && h.hearts > 0)
+        );
+    }
+
+    // Filtrar por tags seleccionados (OR: alguno de los tags)
+    if (adminData.filters.tags.size > 0) {
+        songs = songs.filter(s => {
+            const songTags = s.tags || [];
+            return [...adminData.filters.tags].some(t => {
+                if (t === '__NO_TAGS__') return songTags.length === 0;
+                return songTags.includes(t);
+            });
+        });
+    }
+
+    // Sort by globalHearts descending
+    songs.sort((a, b) => b.globalHearts - a.globalHearts);
+
+    // Update title
+    const titleEl = document.getElementById('admin-songs-title');
+    if (titleEl) titleEl.textContent = `Canciones (${songs.length})`;
+
+    if (songs.length === 0) {
+        return '<div style="text-align:center;color:#666;padding:20px;">Sin resultados</div>';
+    }
+
+    return songs.map(s => {
+        const heartsDetail = s.userHearts.map(h =>
+            `<span class="admin-heart-chip ${h.hearts <= 0 ? 'negative' : ''}">${h.userName.split(' ')[0]}: ${h.hearts}</span>`
+        ).join('');
+        const sizeMB = s.size ? (s.size / 1048576).toFixed(1) + ' MB' : '';
+        const age = s.savedAt ? Math.round((Date.now() - s.savedAt) / 86400000) + 'd' : '';
+        const tags = (s.tags || []).slice(0, 3).join(', ');
+
+        return `
+            <div class="admin-song-item">
+                <div class="admin-song-main">
+                    <div class="admin-song-title">${s.title}</div>
+                    <div class="admin-song-meta">${s.artist} | ${s.genre} | ${sizeMB} | ${age}</div>
+                    <div class="admin-song-tags">${tags}</div>
+                </div>
+                <div class="admin-song-hearts">
+                    <span class="admin-global-hearts ${s.globalHearts <= 0 ? 'negative' : ''}">${s.globalHearts} ♥</span>
+                    <div class="admin-hearts-detail">${heartsDetail}</div>
+                </div>
+                <button class="admin-delete-btn" onclick="adminDeleteSong('${s.id}')" title="Borrar">✕</button>
+            </div>`;
+    }).join('');
+}
+
+function toggleAdminUserFilter(userId) {
+    if (adminData.filters.users.has(userId)) adminData.filters.users.delete(userId);
+    else adminData.filters.users.add(userId);
+    rerenderAdmin();
+}
+
+function toggleAdminTagFilter(tag) {
+    if (adminData.filters.tags.has(tag)) adminData.filters.tags.delete(tag);
+    else adminData.filters.tags.add(tag);
+    rerenderAdmin();
+}
+
+function rerenderAdmin() {
+    // Re-render users
+    document.querySelectorAll('.admin-user-card').forEach(card => {
+        const uid = parseInt(card.getAttribute('onclick').match(/\d+/)[0]);
+        card.classList.toggle('active', adminData.filters.users.has(uid));
+    });
+    // Re-render tags
+    const tagsCloud = document.getElementById('admin-tags-cloud');
+    if (tagsCloud) tagsCloud.innerHTML = renderAdminTagCloud();
+    // Re-render songs
+    const songsList = document.getElementById('admin-songs-list');
+    if (songsList) songsList.innerHTML = renderAdminSongs();
+}
+
+async function adminDeleteSong(songId) {
+    const song = adminData.songs.find(s => s.id === songId);
+    if (!confirm(`Borrar "${song?.title || songId}"?`)) return;
+
+    try {
+        const res = await fetch('api/admin.php?action=delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+            body: JSON.stringify({ songId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            adminData.songs = adminData.songs.filter(s => s.id !== songId);
+            rerenderAdmin();
+            showToast('Borrada: ' + (song?.title || songId));
+        }
+    } catch (e) { showToast('Error borrando'); }
+}
+
+async function adminCleanup() {
+    const orphans = adminData.songs.filter(s => s.globalHearts <= 0);
+    if (orphans.length === 0) { showToast('No hay canciones sin corazones'); return; }
+    if (!confirm(`Borrar ${orphans.length} canciones con 0 o menos corazones?`)) return;
+
+    let deleted = 0;
+    for (const s of orphans) {
+        try {
+            const res = await fetch('api/admin.php?action=delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                body: JSON.stringify({ songId: s.id })
+            });
+            const data = await res.json();
+            if (data.success) {
+                adminData.songs = adminData.songs.filter(x => x.id !== s.id);
+                deleted++;
+            }
+        } catch (e) {}
+    }
+    rerenderAdmin();
+    showToast(`Borradas ${deleted} canciones`);
+}
+
+function closeAdminPanel() {
+    document.getElementById('admin-panel-wrap')?.remove();
+}
+
+// === Android Auto Info ===
+function showAndroidAutoInfo() {
+    const overlay = document.createElement('div');
+    overlay.className = 'error-modal-overlay';
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    overlay.innerHTML = `
+        <div class="android-auto-info-modal">
+            <h2>🚗 Android Auto</h2>
+            <p style="color:var(--text-muted);margin-bottom:16px;">ChemPlay es compatible con Android Auto. Controla tu musica desde la pantalla del coche.</p>
+
+            <div class="aa-feature-list">
+                <div class="aa-feature">♥ <strong>Me gusta / No me gusta</strong> — Vota canciones desde el coche</div>
+                <div class="aa-feature">🎲 <strong>Al azar</strong> — Salta a cancion aleatoria</div>
+                <div class="aa-feature">✨ <strong>Sorpresa</strong> — Busca cancion popular nueva</div>
+                <div class="aa-feature">🎤 <strong>Busqueda por voz</strong> — "Pon rock" o "Pon Coldplay"</div>
+                <div class="aa-feature">🏷️ <strong>Etiquetas</strong> — Navega por genero, fuente, estilo</div>
+                <div class="aa-feature">🏆 <strong>Top valoradas</strong> — Tus canciones con mas corazones</div>
+                <div class="aa-feature">⚡ <strong>Sin cortes</strong> — Siguiente cancion precargada</div>
+                <div class="aa-feature">🔒 <strong>Pantalla bloqueada</strong> — Controles siempre visibles</div>
+            </div>
+
+            <h3 style="margin-top:20px;">Activar modo desarrollador en Android Auto</h3>
+            <ol class="aa-steps">
+                <li>Abre la app <strong>Android Auto</strong> en tu telefono</li>
+                <li>Ve a <strong>Ajustes</strong> (engranaje arriba a la derecha)</li>
+                <li>Baja hasta <strong>Version</strong> y pulsa <strong>10 veces</strong> seguidas</li>
+                <li>Aparece el menu <strong>"Ajustes para desarrolladores"</strong></li>
+                <li>Activa <strong>"Fuentes desconocidas"</strong> para permitir apps no verificadas</li>
+                <li>Reinicia Android Auto</li>
+                <li>ChemPlay aparecera en la lista de apps del coche</li>
+            </ol>
+
+            <p style="color:var(--text-muted);font-size:12px;margin-top:12px;">Nota: Tambien puedes probar sin coche usando la app <strong>"Android Auto para pantallas de telefono"</strong> o el emulador <strong>Desktop Head Unit (DHU)</strong> de Android Studio.</p>
+
+            <button class="whats-new-close" onclick="this.closest('.error-modal-overlay').remove()">Entendido</button>
+        </div>`;
+    document.body.appendChild(overlay);
+}
+
+// === Al Azar (saltar a canción aleatoria de la cola) ===
+async function playRandom() {
+    const songs = await getAllSongs();
+    if (!songs || songs.length <= 1) { showToast("No hay suficientes canciones"); return; }
+    // Elegir aleatoria diferente a la actual
+    let pick;
+    let attempts = 0;
+    do {
+        pick = songs[Math.floor(Math.random() * songs.length)];
+        attempts++;
+    } while (pick.id === currentSong?.id && attempts < 20);
+    showToast(`🎲 ${pick.title}`);
+    await tryPlaySong(pick);
+    updateHeartsDisplay();
 }
 
 // === Discover (Sorpresa) ===
@@ -2316,6 +2628,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (confirm('¿Cerrar sesión?')) logout();
     });
 
+    // Admin panel
+    document.getElementById('admin-btn')?.addEventListener('click', openAdminPanel);
+
     // Load hearts
     unifiedHearts = await loadHeartsFromServer();
 
@@ -2326,6 +2641,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('prev-btn')?.addEventListener('click', playPrev);
     document.getElementById('save-btn')?.addEventListener('click', handleSaveBtn);
     document.getElementById('surprise-btn')?.addEventListener('click', discoverNew);
+    document.getElementById('random-btn')?.addEventListener('click', playRandom);
 
     // Vote controls
     document.getElementById('vote-like')?.addEventListener('click', () => handleVote('like'));
@@ -2477,7 +2793,7 @@ function initAndroidBanner() {
                 <strong>ChemPlay para Android</strong>
                 <span>App nativa con Android Auto y controles Bluetooth</span>
             </div>
-            <a href="chemplay-v3.2.0.apk" class="android-banner-btn" download="ChemPlay-v3.2.0.apk">Descargar</a>
+            <a href="chemplay-v3.4.0.apk" class="android-banner-btn" download="ChemPlay-v3.4.0.apk">Descargar</a>
             <button class="android-banner-close" id="android-banner-close">&times;</button>
         `;
         document.body.appendChild(banner);

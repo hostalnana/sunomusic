@@ -27,3 +27,6 @@ Thumbs.db
 *.bak
 *.unison.tmp
 *.part
+android/app/build/
+android/.gradle/
+*.class

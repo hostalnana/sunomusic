@@ -1,422 +1,586 @@
 [
     {
-        "id": "yt-yt_69c0361caea54",
-        "title": "FEEL MELODIC TECHNO",
-        "artist": "CTedmMusic",
-        "genre": "YouTube",
-        "hearts": 1,
-        "url": "downloads\/audio_64027051bcec1dc4dce5b2f694c4511f.mp3",
-        "thumb": "downloads\/thumb_64027051bcec1dc4dce5b2f694c4511f.jpg",
-        "size": 4778973,
-        "savedAt": 1774204453000,
-        "tags": [
-            "YouTube"
-        ]
-    },
-    {
-        "id": "suno-35c07601-8a55-482a-9430-411d1c01a505",
-        "title": "Tranquility in the orchestrated disorder",
+        "id": "suno-b8df3a46-b024-4d2c-a72e-c5cf24a72ad3",
+        "title": "Boogie love affair",
         "artist": "Suno AI",
-        "genre": "lounge",
+        "genre": "electronic",
         "hearts": 1,
-        "url": "downloads\/audio_db1db1aab6963be7f9b5c48c8bd9851f.mp3",
-        "thumb": "downloads\/thumb_db1db1aab6963be7f9b5c48c8bd9851f.jpg",
-        "size": 1092717,
-        "savedAt": 1774204179000,
+        "url": "downloads\/audio_3afa280d6d951132f5e937522d4a7516.mp3",
+        "thumb": "downloads\/thumb_3afa280d6d951132f5e937522d4a7516.jpg",
+        "size": 2521509,
+        "savedAt": 1775568588000,
         "tags": [
             "Suno AI",
-            "Lounge"
+            "Electronic"
         ]
     },
     {
-        "id": "yt-yt_69c0322885811",
-        "title": "John Williams & Vienna Philharmonic \u2013 Williams: Imperial March (from \u201cStar Wars\u201d)",
-        "artist": "Deutsche Grammophon - DG",
-        "genre": "YouTube",
-        "hearts": 1,
-        "url": "downloads\/audio_515e678f2ace0557c4aaaae6a22be5b0.mp3",
-        "thumb": "downloads\/thumb_515e678f2ace0557c4aaaae6a22be5b0.jpg",
-        "size": 5268381,
-        "savedAt": 1774203440000,
-        "tags": [
-            "YouTube"
-        ]
-    },
-    {
-        "id": "yt-yt_69c0320ef14da",
-        "title": "Star Wars - We Are Soldiers",
-        "artist": "Into the Galaxy",
-        "genre": "YouTube",
-        "hearts": 1,
-        "url": "downloads\/audio_b8260a1fed9cae3862e4c667436ce87f.mp3",
-        "thumb": "downloads\/thumb_b8260a1fed9cae3862e4c667436ce87f.jpg",
-        "size": 5753757,
-        "savedAt": 1774203417000,
-        "tags": [
-            "YouTube"
-        ]
-    },
-    {
-        "id": "jamendo-369930",
-        "title": "les-cheper StarWarsImperialMarch ",
-        "artist": "les cheper (Jamendo)",
-        "genre": "Jamendo",
-        "hearts": 1,
-        "url": "downloads\/audio_4986c5024734182400f6890aec7b3bab.mp3",
-        "thumb": "downloads\/thumb_4986c5024734182400f6890aec7b3bab.jpg",
-        "size": 5584569,
-        "savedAt": 1774203390000,
-        "tags": [
-            "Jamendo"
-        ]
-    },
-    {
-        "id": "yt-yt_69bef1704fdbf",
-        "title": "Madonna - La Isla Bonita (Official Video)",
-        "artist": "Madonna",
-        "genre": "YouTube",
-        "hearts": 1,
-        "url": "downloads\/audio_f94ead7daf4bbe1a810efcffa72b7dce.mp3",
-        "thumb": "downloads\/thumb_f94ead7daf4bbe1a810efcffa72b7dce.jpg",
-        "size": 6177405,
-        "savedAt": 1774121338000,
-        "tags": [
-            "YouTube"
-        ]
-    },
-    {
-        "id": "yt-yt_69bec7fb6378a",
-        "title": "MALASANGRE - Infierno (Oficial)",
-        "artist": "Malasangre",
-        "genre": "YouTube",
-        "hearts": 1,
-        "url": "downloads\/audio_dc542335b4288b53b0fba22934500839.mp3",
-        "thumb": "downloads\/thumb_dc542335b4288b53b0fba22934500839.jpg",
-        "size": 5573853,
-        "savedAt": 1774110725000,
-        "tags": [
-            "YouTube"
-        ]
-    },
-    {
-        "id": "suno-3c05432e-5cf3-46a6-a26c-7eb77015e1d6",
-        "title": "Rise high, connect with the rhythm",
+        "id": "suno-ea184678-65f4-4309-96b9-8940765cab10",
+        "title": "One love, one heart",
         "artist": "Suno AI",
-        "genre": "house",
-        "hearts": 2,
-        "url": "downloads\/audio_21ec262af93618a0a132949f69106d13.mp3",
-        "thumb": "downloads\/thumb_21ec262af93618a0a132949f69106d13.jpg",
-        "size": 3472941,
-        "savedAt": 1774110584000,
+        "genre": "reggae",
+        "hearts": 1,
+        "url": "downloads\/audio_e15597085be444e5a687e7e7496a1310.mp3",
+        "thumb": "downloads\/thumb_e15597085be444e5a687e7e7496a1310.jpg",
+        "size": 2906061,
+        "savedAt": 1775568582000,
         "tags": [
             "Suno AI",
-            "House"
+            "Reggae"
         ]
-    },
-    {
-        "id": "suno-49f7600f-e31f-4b63-a94d-4b791afdb751",
-        "title": "Diminishing reverberations",
-        "artist": "Suno AI",
-        "genre": "rnb",
-        "hearts": 1,
-        "url": "downloads\/audio_6e3adee28ac66103562bedc10e547e84.mp3",
-        "thumb": "downloads\/thumb_6e3adee28ac66103562bedc10e547e84.jpg",
-        "size": 1993533,
-        "savedAt": 1774110536000,
-        "tags": [
-            "Suno AI",
-            "Rnb"
-        ]
-    },
-    {
-        "id": "suno-04e64e8d-7068-4b7b-beec-f36a4c2cbb6c",
-        "title": "La danza della morte",
-        "artist": "Suno AI",
-        "genre": "hiphop",
-        "hearts": 1,
-        "url": "downloads\/audio_da2dc370e0fb04c704d0623c924b589d.mp3",
-        "thumb": "downloads\/thumb_da2dc370e0fb04c704d0623c924b589d.jpg",
-        "size": 2702877,
-        "savedAt": 1774109471000,
-        "tags": [
-            "Suno AI",
-            "Hiphop"
-        ]
-    },
-    {
-        "id": "yt-yt_69bebac158f1e",
-        "title": "KAROL G, Nicki Minaj - Tusa (Official Video)",
-        "artist": "KAROL G",
-        "genre": "YouTube",
-        "hearts": 1,
-        "url": "downloads\/audio_88c0e7cfb345725bfc325195255bf698.mp3",
-        "thumb": "downloads\/thumb_88c0e7cfb345725bfc325195255bf698.jpg",
-        "size": 4624413,
-        "savedAt": 1774107337000,
-        "tags": [
-            "YouTube"
-        ]
-    },
-    {
-        "id": "suno-0cd7c1ee-dc16-4a28-8b09-938cd6c850d3",
-        "title": "Strength in the rhythm",
-        "artist": "Suno AI",
-        "genre": "YouTube",
-        "hearts": 1,
-        "url": "downloads\/audio_897859d0855d9440c150b0cea40e6b5d.mp3",
-        "thumb": "downloads\/thumb_897859d0855d9440c150b0cea40e6b5d.jpg",
-        "size": 2299773,
-        "savedAt": 1774107309000,
-        "tags": [
-            "YouTube"
-        ]
-    },
-    {
-        "id": "yt-yt_69beba3c0d6bd",
-        "title": "Anna Calvi, David Byrne - Strange Weather (Official Video)",
-        "artist": "Anna Calvi",
-        "genre": "YouTube",
-        "hearts": 1,
-        "url": "downloads\/audio_f7253302f46ca25a73b047e7b2601034.mp3",
-        "thumb": "downloads\/thumb_f7253302f46ca25a73b047e7b2601034.jpg",
-        "size": 7248477,
-        "savedAt": 1774107208000,
-        "tags": [
-            "YouTube"
-        ]
-    },
-    {
-        "id": "yt-yt_69beb0c30a587",
-        "title": "Harry Styles - As It Was (Official Video)",
-        "artist": "Harry Styles",
-        "genre": "YouTube",
-        "hearts": 2,
-        "url": "downloads\/audio_f24f03073562c3f95739c48c1efe2238.mp3",
-        "thumb": "downloads\/thumb_f24f03073562c3f95739c48c1efe2238.jpg",
-        "size": 3943917,
-        "savedAt": 1774104779000,
-        "tags": [
-            "YouTube"
-        ]
-    },
-    {
-        "id": "yt-yt_69beacc794236",
-        "title": "Madonna - Hung Up (Official Video) [HD]",
-        "artist": "Madonna",
-        "genre": "YouTube",
-        "hearts": 1,
-        "url": "downloads\/audio_b1400d90efc137cb2f6c2e104e322b83.mp3",
-        "thumb": "downloads\/thumb_b1400d90efc137cb2f6c2e104e322b83.jpg",
-        "size": 7819077,
-        "savedAt": 1774103778000
-    },
-    {
-        "id": "torrent-torrent_69beab9f34881-28",
-        "title": "Tame Impala Dracula",
-        "artist": "Torrent",
-        "genre": "Torrent",
-        "hearts": 1,
-        "url": "downloads\/audio_c6f6543aec75a41bb8cc0c44ce6ee568.mp3",
-        "thumb": "icon.png",
-        "size": 8315522,
-        "savedAt": 1774103665000
-    },
-    {
-        "id": "torrent-torrent_69beab9f34881-27",
-        "title": "Bad Bunny NUEVAYoL",
-        "artist": "Torrent",
-        "genre": "Torrent",
-        "hearts": 1,
-        "url": "downloads\/audio_b5a82dacd560a42092c169a4bb7401ad.mp3",
-        "thumb": "icon.png",
-        "size": 7579743,
-        "savedAt": 1774103665000
-    },
-    {
-        "id": "torrent-torrent_69beab9f34881-25",
-        "title": "Djo End of Beginning",
-        "artist": "Torrent",
-        "genre": "Torrent",
-        "hearts": 1,
-        "url": "downloads\/audio_b528aea7a7e2771d7ac7f5bd3e647a35.mp3",
-        "thumb": "icon.png",
-        "size": 6501686,
-        "savedAt": 1774103665000
-    },
-    {
-        "id": "torrent-torrent_69beab9f34881-24",
-        "title": "Charli xcx Dying for You",
-        "artist": "Torrent",
-        "genre": "Torrent",
-        "hearts": 1,
-        "url": "downloads\/audio_b6ddbd13a797dfed87a75918256040a7.mp3",
-        "thumb": "icon.png",
-        "size": 7389907,
-        "savedAt": 1774103665000
-    },
-    {
-        "id": "torrent-torrent_69beab9f34881-23",
-        "title": "Twenty One Pilots Drag Path",
-        "artist": "Torrent",
-        "genre": "Torrent",
-        "hearts": 1,
-        "url": "downloads\/audio_d00d68fec0dfce1891032b0f5e30612a.mp3",
-        "thumb": "icon.png",
-        "size": 9074243,
-        "savedAt": 1774103665000
-    },
-    {
-        "id": "torrent-torrent_69beab9f34881-22",
-        "title": "Zara Larsson Midnight Sun",
-        "artist": "Torrent",
-        "genre": "Torrent",
-        "hearts": 1,
-        "url": "downloads\/audio_1682d8f72ea2a227ea5685655551ac9a.mp3",
-        "thumb": "icon.png",
-        "size": 7749058,
-        "savedAt": 1774103665000
-    },
-    {
-        "id": "torrent-torrent_69beab9f34881-18",
-        "title": "Dominic Fike Babydoll",
-        "artist": "Torrent",
-        "genre": "Torrent",
-        "hearts": 1,
-        "url": "downloads\/audio_1adb84c872e2ad9638286ee0aaac7ff2.mp3",
-        "thumb": "icon.png",
-        "size": 4011288,
-        "savedAt": 1774103665000
-    },
-    {
-        "id": "torrent-torrent_69beab9f34881-12",
-        "title": "Charli xcx Chains of Love",
-        "artist": "Torrent",
-        "genre": "Torrent",
-        "hearts": 1,
-        "url": "downloads\/audio_5e5a7e3ec334e4245d3f974a7aadc08e.mp3",
-        "thumb": "icon.png",
-        "size": 6916571,
-        "savedAt": 1774103665000
-    },
-    {
-        "id": "torrent-torrent_69beab9f34881-11",
-        "title": "Milky Just The Way You Are",
-        "artist": "Torrent",
-        "genre": "Torrent",
-        "hearts": 1,
-        "url": "downloads\/audio_6166b3c00d75824f399d181fafb012b6.mp3",
-        "thumb": "icon.png",
-        "size": 8563202,
-        "savedAt": 1774103665000
-    },
-    {
-        "id": "torrent-torrent_69beab9f34881-10",
-        "title": "Bad Bunny DtMF",
-        "artist": "Torrent",
-        "genre": "Torrent",
-        "hearts": 1,
-        "url": "downloads\/audio_8f7080b4b0bcad91c3cfcd3bbcba6598.mp3",
-        "thumb": "icon.png",
-        "size": 9717659,
-        "savedAt": 1774103665000
-    },
-    {
-        "id": "torrent-torrent_69beab9f34881-8",
-        "title": "Bruno Mars I Just Might",
-        "artist": "Torrent",
-        "genre": "Torrent",
-        "hearts": 1,
-        "url": "downloads\/audio_ba60cbd44dc134d9b87dfc4608be4e9e.mp3",
-        "thumb": "icon.png",
-        "size": 8679504,
-        "savedAt": 1774103665000
-    },
-    {
-        "id": "torrent-torrent_69beab9f34881-5",
-        "title": "sombr Homewrecker",
-        "artist": "Torrent",
-        "genre": "Torrent",
-        "hearts": 1,
-        "url": "downloads\/audio_0298887b768b97f1085fbb180e31fa00.mp3",
-        "thumb": "icon.png",
-        "size": 8494864,
-        "savedAt": 1774103665000
-    },
-    {
-        "id": "torrent-torrent_69beab9f34881-4",
-        "title": "Bella Kay iloveitiloveitiloveit",
-        "artist": "Torrent",
-        "genre": "Torrent",
-        "hearts": 1,
-        "url": "downloads\/audio_ec68a7f9aae83e63748481bb6fe50f21.mp3",
-        "thumb": "icon.png",
-        "size": 7464275,
-        "savedAt": 1774103665000
-    },
-    {
-        "id": "yt-yt_69beaaf040c9a",
-        "title": "Julio Iglesias, Stevie Wonder - My Love",
-        "artist": "Julio Iglesias",
-        "genre": "YouTube",
-        "hearts": 1,
-        "url": "downloads\/audio_62984b57feab30372a95e289d3b6d4f0.mp3",
-        "thumb": "downloads\/thumb_62984b57feab30372a95e289d3b6d4f0.jpg",
-        "size": 1048576,
-        "savedAt": 1774103284000
-    },
-    {
-        "id": "yt-yt_69beaa76a1ca6",
-        "title": "Jean-Michel Jarre - Oxygene, Pt. 4",
-        "artist": "Jean Michel Jarre",
-        "genre": "YouTube",
-        "hearts": 1,
-        "url": "downloads\/audio_0ba07095a236c25d8244868250d9f5a0.mp3",
-        "thumb": "downloads\/thumb_0ba07095a236c25d8244868250d9f5a0.jpg",
-        "size": 1572864,
-        "savedAt": 1774103162000
-    },
-    {
-        "id": "yt-yt_69beaa4d7d414",
-        "title": "Jean Michel Jarre - Oxygen II",
-        "artist": "Zeljko Vossmann",
-        "genre": "YouTube",
-        "hearts": 1,
-        "url": "downloads\/audio_51032ff804ae5f671c5c8260b2d3d70e.mp3",
-        "thumb": "downloads\/thumb_51032ff804ae5f671c5c8260b2d3d70e.jpg",
-        "size": 1048576,
-        "savedAt": 1774103121000
     },
     {
         "id": "suno-bb1d80e4-5082-40c4-92b2-80967b18fba5",
         "title": "Rise high",
         "artist": "Suno AI",
         "genre": "dance",
-        "hearts": 1,
+        "hearts": 2,
         "url": "downloads\/audio_a0c92ff8bc33b715457bcce3b7908bda.mp3",
         "thumb": "downloads\/thumb_a0c92ff8bc33b715457bcce3b7908bda.jpg",
         "size": 2078733,
-        "savedAt": 1774102739000
+        "savedAt": 1775568577000,
+        "tags": [
+            "Suno AI",
+            "Dance"
+        ]
     },
     {
-        "id": "yt-yt_69bea86440555",
-        "title": "Best Pop Songs 2026 - Bruno Mars, Taylor Swift, Ed Sheeran, Alan Walker, Sia | New Songs 2026",
-        "artist": "MonoWave House",
-        "genre": "YouTube",
+        "id": "suno-03961672-8f96-41f8-8972-149c20b5c411",
+        "title": "Usawa na kushirikishwa",
+        "artist": "Suno AI",
+        "genre": "folk",
         "hearts": 1,
-        "url": "downloads\/audio_2fbf501b0eec7ac8160e099dca7d21e1.mp3",
-        "thumb": "downloads\/thumb_2fbf501b0eec7ac8160e099dca7d21e1.jpg",
-        "size": 1835008,
-        "savedAt": 1774102634000
+        "url": "downloads\/audio_1a20ee207ffbde51ded8f86822b0d547.mp3",
+        "thumb": "downloads\/thumb_1a20ee207ffbde51ded8f86822b0d547.jpg",
+        "size": 2145717,
+        "savedAt": 1775568145000,
+        "tags": [
+            "Suno AI",
+            "Folk"
+        ]
     },
     {
-        "id": "yt-yt_69bea840e51eb",
-        "title": "Zodiac",
-        "artist": "YouTube",
-        "genre": "YouTube",
+        "id": "suno-1285104e-d11f-4333-a50e-78bd129f99e7",
+        "title": "Sea of stillness",
+        "artist": "Suno AI",
+        "genre": "experimental",
         "hearts": 1,
-        "url": "downloads\/audio_57ba95c9c6bd71a918395b0c1aadc513.mp3",
+        "url": "downloads\/audio_78c8b25c9bee593de9e7b6c5b436db7d.mp3",
+        "thumb": "downloads\/thumb_78c8b25c9bee593de9e7b6c5b436db7d.jpg",
+        "size": 4313517,
+        "savedAt": 1775567597000,
+        "tags": [
+            "Suno AI",
+            "Experimental"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-25",
+        "title": "13 March 14",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_a17fd5a5551711b23e86a51e99366af9.mp3",
         "thumb": "icon.png",
-        "size": 34654079,
-        "savedAt": 1774102597000
+        "size": 12441122,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-24",
+        "title": "12 Final Fantasy",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_c635b36357cc5ba83c5faf904cac3bac.mp3",
+        "thumb": "icon.png",
+        "size": 8857182,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-23",
+        "title": "11 After Dark (feat Static Major & Ty Dolla $ign)",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_52434c7fa6187e8e7126babc20e0abe3.mp3",
+        "thumb": "icon.png",
+        "size": 11640780,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent",
+            "Feat"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-22",
+        "title": "10 Don't Matter to Me (feat Michael Jackson)",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_39aea3864d0dd321d21435ea5887182f.mp3",
+        "thumb": "icon.png",
+        "size": 9890592,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent",
+            "Feat"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-21",
+        "title": "09 In My Feelings",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_44c57395c5a816dabbc64628fea29e11.mp3",
+        "thumb": "icon.png",
+        "size": 8775718,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-20",
+        "title": "08 Blue Tint",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_3d8990e83b84e9cc4b1031d0fbd51b78.mp3",
+        "thumb": "icon.png",
+        "size": 6570829,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-19",
+        "title": "07 That's How You Feel",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_a48e95a0325964cab6082606da34476c.mp3",
+        "thumb": "icon.png",
+        "size": 6362881,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-18",
+        "title": "06 Ratchet Happy Birthday",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_d6bcad880a23fece9cb415153645550f.mp3",
+        "thumb": "icon.png",
+        "size": 8350361,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-15",
+        "title": "03 Jaded",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_3584972bdc3f096b233cfd193038e70a.mp3",
+        "thumb": "icon.png",
+        "size": 10557061,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-14",
+        "title": "02 Summer Games",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_fa35491332165cfb60d706950eec6ce6.mp3",
+        "thumb": "icon.png",
+        "size": 9974116,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-13",
+        "title": "01 Peak",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_6eb9bdcdacc6b5ae2cd2365aca33c84e.mp3",
+        "thumb": "icon.png",
+        "size": 8299031,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-11",
+        "title": "11 Talk Up (feat JAY Z)",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_aad65b96a710008733f1ebef2d2b3ae8.mp3",
+        "thumb": "icon.png",
+        "size": 7890728,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent",
+            "Feat"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-10",
+        "title": "10 Sandra's Rose",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_3ef74499dd78df54123615da0e6281c4.mp3",
+        "thumb": "icon.png",
+        "size": 8711797,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-9",
+        "title": "09 Can't Take a Joke",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_59f3a0a512e8d8f2c2359af9e7f77873.mp3",
+        "thumb": "icon.png",
+        "size": 6617814,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-8",
+        "title": "08 Mob Ties",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_c9592830cfd38c219ec498137d686687.mp3",
+        "thumb": "icon.png",
+        "size": 8264763,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-7",
+        "title": "07 8 Out Of 10",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_0d830b238eafc1890010d2e4b20eceeb.mp3",
+        "thumb": "icon.png",
+        "size": 7887447,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-6",
+        "title": "06 I'm Upset",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_5539941f34286fac5fba9e39508805bb.mp3",
+        "thumb": "icon.png",
+        "size": 8637594,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-5",
+        "title": "05 God's Plan",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_6833654d9ca1462a3b7537b3a0ef4537.mp3",
+        "thumb": "icon.png",
+        "size": 8017038,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-3",
+        "title": "03 Elevate",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_8f9d5978c24fbdc6ca411c7f5b3a8706.mp3",
+        "thumb": "icon.png",
+        "size": 7456877,
+        "savedAt": 1775567236000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b-2",
+        "title": "02 Nonstop",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_e30ef3509c6affb86348176e136058c8.mp3",
+        "thumb": "icon.png",
+        "size": 9603091,
+        "savedAt": 1775567235000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d50105d4a2b",
+        "title": "01 Survival",
+        "artist": "Drake",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_b7a2312890d127d7f489165a2618c627.mp3",
+        "thumb": "icon.png",
+        "size": 5506059,
+        "savedAt": 1775567235000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "suno-776e31d6-bcf3-4fe6-9ad3-2ec55d1db991",
+        "title": "Unseen shackles",
+        "artist": "Suno AI",
+        "genre": "grunge",
+        "hearts": 1,
+        "url": "downloads\/audio_0da75c31230e629ca396e080b6fc0e26.mp3",
+        "thumb": "downloads\/thumb_0da75c31230e629ca396e080b6fc0e26.jpg",
+        "size": 2378685,
+        "savedAt": 1775567155000,
+        "tags": [
+            "Suno AI",
+            "Grunge"
+        ]
+    },
+    {
+        "id": "suno-748ec76e-10be-4490-bb23-6a70620ae98b",
+        "title": "Existential boogie",
+        "artist": "Suno AI",
+        "genre": "disco",
+        "hearts": 1,
+        "url": "downloads\/audio_56a584d8c1ea9f6192a2cbb1456dc859.mp3",
+        "thumb": "downloads\/thumb_56a584d8c1ea9f6192a2cbb1456dc859.jpg",
+        "size": 4303101,
+        "savedAt": 1775567087000,
+        "tags": [
+            "Suno AI",
+            "Disco"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d2915809934-11",
+        "title": "Tame Impala Piece Of Heaven",
+        "artist": "Tame Impala",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_ea9a89fe35deb77e4c3b0d508d55880e.mp3",
+        "thumb": "downloads\/thumb_61c0f4956227f1e662b3eecfdf7f51ab.jpg",
+        "size": 11397744,
+        "savedAt": 1775407502000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d2915809934-10",
+        "title": "Tame Impala Obsolete",
+        "artist": "Tame Impala",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_5493986256e9462585da9b053495eb33.mp3",
+        "thumb": "downloads\/thumb_61c0f4956227f1e662b3eecfdf7f51ab.jpg",
+        "size": 10558553,
+        "savedAt": 1775407502000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d2915809934-9",
+        "title": "Tame Impala Oblivion",
+        "artist": "Tame Impala",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_042f8460e79831af31ebb11e528d9085.mp3",
+        "thumb": "downloads\/thumb_61c0f4956227f1e662b3eecfdf7f51ab.jpg",
+        "size": 10772691,
+        "savedAt": 1775407502000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d2915809934-8",
+        "title": "Tame Impala Not My World",
+        "artist": "Tame Impala",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_6bb8fdee6c3c0129b7f3ac7004449de9.mp3",
+        "thumb": "downloads\/thumb_61c0f4956227f1e662b3eecfdf7f51ab.jpg",
+        "size": 10176490,
+        "savedAt": 1775407502000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d2915809934-7",
+        "title": "Tame Impala No Reply",
+        "artist": "Tame Impala",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_771a5fa54d8ec094268b1fd52eb3f9f9.mp3",
+        "thumb": "downloads\/thumb_61c0f4956227f1e662b3eecfdf7f51ab.jpg",
+        "size": 8615408,
+        "savedAt": 1775407502000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d2915809934-6",
+        "title": "Tame Impala My Old Ways",
+        "artist": "Tame Impala",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_f6a1c5076db7fbe3746243e56f4784dc.mp3",
+        "thumb": "downloads\/thumb_61c0f4956227f1e662b3eecfdf7f51ab.jpg",
+        "size": 11966688,
+        "savedAt": 1775407502000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d2915809934-5",
+        "title": "Tame Impala Loser",
+        "artist": "Tame Impala",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_17ec3fc65a4d2cb4251c822a93460803.mp3",
+        "thumb": "downloads\/thumb_61c0f4956227f1e662b3eecfdf7f51ab.jpg",
+        "size": 8931974,
+        "savedAt": 1775407502000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d2915809934-4",
+        "title": "Tame Impala Ethereal Connection",
+        "artist": "Tame Impala",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_081cbf30b6dfdf390eb5d3fdf79340d6.mp3",
+        "thumb": "downloads\/thumb_61c0f4956227f1e662b3eecfdf7f51ab.jpg",
+        "size": 18503388,
+        "savedAt": 1775407502000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d2915809934-3",
+        "title": "Tame Impala End Of Summer",
+        "artist": "Tame Impala",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_867216a63e34f5b77d1acc2568e70cea.mp3",
+        "thumb": "downloads\/thumb_61c0f4956227f1e662b3eecfdf7f51ab.jpg",
+        "size": 17313296,
+        "savedAt": 1775407502000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d2915809934-2",
+        "title": "Tame Impala Dracula",
+        "artist": "Tame Impala",
+        "genre": "Torrent",
+        "hearts": 6,
+        "url": "downloads\/audio_d214370826a7053a4be779fea4d869c5.mp3",
+        "thumb": "downloads\/thumb_61c0f4956227f1e662b3eecfdf7f51ab.jpg",
+        "size": 8223669,
+        "savedAt": 1775407502000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "torrent-torrent_69d2915809934",
+        "title": "Tame Impala Afterthought",
+        "artist": "Tame Impala",
+        "genre": "Torrent",
+        "hearts": 1,
+        "url": "downloads\/audio_0733af3b5942ce87729aa30311222d62.mp3",
+        "thumb": "downloads\/thumb_61c0f4956227f1e662b3eecfdf7f51ab.jpg",
+        "size": 9686181,
+        "savedAt": 1775407502000,
+        "tags": [
+            "Torrent"
+        ]
+    },
+    {
+        "id": "yt-yt_69ce2abe4b143",
+        "title": "MALASANGRE - Dios (Oficial)",
+        "artist": "Malasangre",
+        "genre": "YouTube",
+        "hearts": 1,
+        "url": "downloads\/audio_c6ac5bc262b8deeb768988d183aea563.mp3",
+        "thumb": "downloads\/thumb_c6ac5bc262b8deeb768988d183aea563.jpg",
+        "size": 5210805,
+        "savedAt": 1775119048000,
+        "tags": [
+            "YouTube"
+        ]
+    },
+    {
+        "id": "yt-yt_69ce242c5f717",
+        "title": "Shut Up and Dance | Movie Compilation",
+        "artist": "The Age of Cinema",
+        "genre": "YouTube",
+        "hearts": 1,
+        "url": "downloads\/audio_569c14df4ae1bd17cbabd9989c2d4960.mp3",
+        "thumb": "downloads\/thumb_569c14df4ae1bd17cbabd9989c2d4960.jpg",
+        "size": 5294709,
+        "savedAt": 1775117366000,
+        "tags": [
+            "YouTube"
+        ]
     }
 ]

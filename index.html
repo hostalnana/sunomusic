@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>ChemPlay by ChemaDev</title>
     <meta name="description" content="Tu reproductor de musica premium con IA.">
-    <link rel="stylesheet" href="styles.css?v=41">
+    <link rel="stylesheet" href="styles.css?v=46">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
@@ -91,6 +91,9 @@
                     🏆
                     <span class="lib-badge" id="lib-count">0</span>
                 </button>
+                <button class="header-btn" id="admin-btn" title="Admin" style="display:none;">
+                    <i data-lucide="settings"></i>
+                </button>
             </div>
         </header>
         <main class="player-main">
@@ -142,8 +145,10 @@
                 </button>
             </div>
             <div class="extra-controls">
-                <button class="btn-pill surprise" id="surprise-btn"><i data-lucide="shuffle"></i>
-                    <span>Sorpresa/Nueva</span></button>
+                <button class="btn-pill random" id="random-btn"><i data-lucide="dice-3"></i>
+                    <span>Al azar</span></button>
+                <button class="btn-pill surprise" id="surprise-btn"><i data-lucide="sparkles"></i>
+                    <span>Sorpresa</span></button>
             </div>
             <div class="volume-row">
                 <button class="volume-btn" id="volume-icon-btn"><i data-lucide="volume-2" id="volume-icon"></i></button>
@@ -155,7 +160,8 @@
         <footer class="stats-footer">
             <span><i data-lucide="hard-drive" style="width:14px;height:14px;"></i> <span id="lib-size">0
                     KB</span></span>
-            <a href="chemplay-v3.2.0.apk" download="ChemPlay-v3.2.0.apk" class="apk-download-link"><i data-lucide="smartphone" style="width:13px;height:13px;"></i> Android APK</a>
+            <a href="chemplay-v3.4.0.apk" download="ChemPlay-v3.4.0.apk" class="apk-download-link"><i data-lucide="smartphone" style="width:13px;height:13px;"></i> APK</a>
+            <button class="apk-download-link" onclick="showAndroidAutoInfo()" style="background:none;border:none;cursor:pointer;">🚗 Auto</button>
             <div class="footer-credit" id="footer-credit">By ChemaDev</div>
         </footer>
     </div>
@@ -173,7 +179,7 @@
     </div>
 
     <audio id="main-audio"></audio>
-    <script src="app_v2.js?v=48"></script>
+    <script src="app_v2.js?v=52"></script>
     <script>
         lucide.createIcons();
         if ('serviceWorker' in navigator) {

@@ -28,8 +28,10 @@ drawable ic_heart_broken
 drawable ic_music_note
 drawable ic_pause
 drawable ic_play
+drawable ic_shuffle
 drawable ic_skip_next
 drawable ic_skip_previous
+drawable ic_surprise
 id item_artist
 id item_genre
 id item_number

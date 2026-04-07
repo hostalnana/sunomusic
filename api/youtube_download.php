@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once __DIR__ . '/tag_helper.php';
+require_once __DIR__ . '/storage_helper.php';
 
 $downloadDir = realpath(__DIR__ . '/../downloads');
 $jobDir = $downloadDir . '/yt_jobs/';
@@ -144,6 +145,13 @@ $url = $data['url'] ?? '';
 // Validate YouTube URL
 if (!preg_match('/^https?:\/\/(www\.)?(youtube\.com|youtu\.be|music\.youtube\.com|m\.youtube\.com)\//i', $url)) {
     echo json_encode(['success' => false, 'error' => 'URL de YouTube no válida']);
+    exit;
+}
+
+// Check storage limit before downloading (estimate ~15MB per song)
+$storageError = checkStorageOrFail(15 * 1024 * 1024);
+if ($storageError) {
+    echo $storageError;
     exit;
 }
 

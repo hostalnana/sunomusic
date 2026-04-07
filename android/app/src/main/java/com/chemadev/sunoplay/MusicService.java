@@ -57,6 +57,8 @@ public class MusicService extends MediaBrowserServiceCompat {
     // Custom action IDs for Android Auto
     private static final String ACTION_LIKE = "com.chemadev.sunoplay.LIKE";
     private static final String ACTION_DISLIKE = "com.chemadev.sunoplay.DISLIKE";
+    private static final String ACTION_SHUFFLE_SKIP = "com.chemadev.sunoplay.SHUFFLE_SKIP";
+    private static final String ACTION_SURPRISE = "com.chemadev.sunoplay.SURPRISE";
 
     private MediaSessionCompat mediaSession;
     private MediaPlayer mediaPlayer;
@@ -140,6 +142,12 @@ public class MusicService extends MediaBrowserServiceCompat {
                     return START_STICKY;
                 case ACTION_DISLIKE:
                     handleHeartsAction(-1);
+                    return START_STICKY;
+                case ACTION_SHUFFLE_SKIP:
+                    handleShuffleSkip();
+                    return START_STICKY;
+                case ACTION_SURPRISE:
+                    handleSurprise();
                     return START_STICKY;
             }
         }
@@ -515,41 +523,97 @@ public class MusicService extends MediaBrowserServiceCompat {
     private void useCachedPlayer(Song song) {
         handler.removeCallbacks(positionUpdater);
 
-        // Release current player
-        try { mediaPlayer.reset(); } catch (Exception ignored) {}
-        try { mediaPlayer.release(); } catch (Exception ignored) {}
+        // Save references before modifying state
+        MediaPlayer cachedPlayer = nextMediaPlayer;
+        Bitmap cachedArtwork = nextArtwork;
 
-        // Swap
-        mediaPlayer = nextMediaPlayer;
+        // Clear next-cache references (even if we fail, cache is consumed)
         nextMediaPlayer = null;
         nextCachedSong = null;
         nextPrepared = false;
-
-        // Set up listeners on the swapped player
-        isPrepared = true;
-        currentArtwork = nextArtwork;
         nextArtwork = null;
 
-        setupMainPlayerListeners();
-        mediaPlayer.start();
+        try {
+            // Release current player
+            try { mediaPlayer.reset(); } catch (Exception ignored) {}
+            try { mediaPlayer.release(); } catch (Exception ignored) {}
 
-        updatePlaybackState(PlaybackStateCompat.STATE_PLAYING);
-        mediaSession.setMetadata(song.toMediaMetadata());
-        updateMetadataWithDuration();
-        updateNotification();
+            // Swap in cached player
+            mediaPlayer = cachedPlayer;
 
-        handler.removeCallbacks(positionUpdater);
-        handler.postDelayed(positionUpdater, 1000);
+            // Set completion/error listeners (skip onPrepared — player is already prepared)
+            mediaPlayer.setOnCompletionListener(mp -> {
+                handler.removeCallbacks(positionUpdater);
+                mediaSession.sendSessionEvent("songComplete", null);
+                if (currentIndex >= 0 && currentIndex < currentQueue.size()) {
+                    handleHeartsAction(1);
+                }
+                if (repeatMode == PlaybackStateCompat.REPEAT_MODE_ONE) {
+                    playSong(currentQueue.get(currentIndex));
+                } else {
+                    skipToNextWithCache();
+                }
+            });
+            mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                Log.e(TAG, "MediaPlayer error (cached): " + what + "/" + extra);
+                isPrepared = false;
+                handler.removeCallbacks(positionUpdater);
+                handler.postDelayed(this::skipToNext, 500);
+                return true;
+            });
 
-        // Update artwork if cached
-        if (currentArtwork != null) {
-            updateMetadataWithArtwork(song, currentArtwork);
-        } else {
-            loadArtworkForSong(song, true);
+            // Start playback
+            mediaPlayer.start();
+            isPrepared = true;
+            currentArtwork = cachedArtwork;
+
+            // Verify playback actually started
+            if (!mediaPlayer.isPlaying()) {
+                throw new IllegalStateException("Cached player start() did not produce playback");
+            }
+
+            updatePlaybackState(PlaybackStateCompat.STATE_PLAYING);
+            mediaSession.setMetadata(song.toMediaMetadata());
+            updateMetadataWithDuration();
+            updateNotification();
+
+            handler.removeCallbacks(positionUpdater);
+            handler.postDelayed(positionUpdater, 1000);
+
+            // Update artwork if cached
+            if (currentArtwork != null) {
+                updateMetadataWithArtwork(song, currentArtwork);
+            } else {
+                loadArtworkForSong(song, true);
+            }
+
+            // Preload the NEXT next song
+            preloadNextSong();
+
+        } catch (Exception e) {
+            Log.w(TAG, "Cached player failed, falling back to normal playback: " + e.getMessage());
+            // Release the broken cached player
+            try { cachedPlayer.reset(); } catch (Exception ignored) {}
+            try { cachedPlayer.release(); } catch (Exception ignored) {}
+
+            // Create a fresh player and use normal playback path
+            isPrepared = false;
+            currentArtwork = null;
+            mediaPlayer = createMediaPlayer();
+            setupMainPlayerListeners();
+
+            try {
+                mediaPlayer.setDataSource(song.audioUrl);
+                mediaPlayer.prepareAsync();
+                mediaSession.setMetadata(song.toMediaMetadata());
+                updatePlaybackState(PlaybackStateCompat.STATE_BUFFERING);
+                updateNotification();
+                loadArtworkForSong(song, true);
+            } catch (Exception e2) {
+                Log.e(TAG, "Fallback playback also failed: " + song.title, e2);
+                handler.postDelayed(this::skipToNext, 500);
+            }
         }
-
-        // Preload the NEXT next song
-        preloadNextSong();
     }
 
     /** Preload the next song in the queue in background */
@@ -629,11 +693,18 @@ public class MusicService extends MediaBrowserServiceCompat {
         });
     }
 
+    /** Build artist string with hearts count visible */
+    private String artistWithHearts(Song song) {
+        if (song.hearts > 0) return song.artist + " | \u2665 " + song.hearts;
+        if (song.hearts < 0) return song.artist + " | \u2661 " + song.hearts;
+        return song.artist;
+    }
+
     private void updateMetadataWithArtwork(Song song, Bitmap bitmap) {
         MediaMetadataCompat.Builder metaBuilder = new MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, song.id)
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, song.title)
-                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.artist)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artistWithHearts(song))
                 .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, song.genre != null ? song.genre : "ChemPlay")
                 .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
                 .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, song.thumbUrl)
@@ -651,7 +722,7 @@ public class MusicService extends MediaBrowserServiceCompat {
         MediaMetadataCompat.Builder metaBuilder = new MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, song.id)
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, song.title)
-                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.artist)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artistWithHearts(song))
                 .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, song.genre != null ? song.genre : "ChemPlay")
                 .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI, song.audioUrl)
                 .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, song.thumbUrl != null ? song.thumbUrl : "")
@@ -731,13 +802,16 @@ public class MusicService extends MediaBrowserServiceCompat {
 
     private void requestAudioFocus() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            focusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                    .setAudioAttributes(new AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                            .build())
-                    .setOnAudioFocusChangeListener(this::onAudioFocusChange)
-                    .build();
+            // Reuse the same focus request to avoid creating orphan requests
+            if (focusRequest == null) {
+                focusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                        .setAudioAttributes(new AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_MEDIA)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                .build())
+                        .setOnAudioFocusChangeListener(this::onAudioFocusChange)
+                        .build();
+            }
             audioManager.requestAudioFocus(focusRequest);
         }
         // Mantener WiFi activo para streaming
@@ -816,11 +890,15 @@ public class MusicService extends MediaBrowserServiceCompat {
                 .setActions(actions)
                 .setState(state, position, speed);
 
-        // Custom actions: Like and Dislike for Android Auto
+        // Custom actions for Android Auto: Like, Dislike, Shuffle Skip
         builder.addCustomAction(new PlaybackStateCompat.CustomAction.Builder(
                 ACTION_LIKE, "Me gusta", R.drawable.ic_heart).build());
         builder.addCustomAction(new PlaybackStateCompat.CustomAction.Builder(
                 ACTION_DISLIKE, "No me gusta", R.drawable.ic_heart_broken).build());
+        builder.addCustomAction(new PlaybackStateCompat.CustomAction.Builder(
+                ACTION_SHUFFLE_SKIP, "Al azar", R.drawable.ic_shuffle).build());
+        builder.addCustomAction(new PlaybackStateCompat.CustomAction.Builder(
+                ACTION_SURPRISE, "Sorpresa", R.drawable.ic_surprise).build());
 
         mediaSession.setPlaybackState(builder.build());
         mediaSession.setShuffleMode(shuffleEnabled
@@ -847,13 +925,9 @@ public class MusicService extends MediaBrowserServiceCompat {
                         .setMediaSession(mediaSession.getSessionToken())
                         .setShowActionsInCompactView(1, 2, 3);
 
-        // Hearts subtitle
-        String subtitle = song.artist;
-        if (song.hearts != 0) subtitle += " | " + heartsString(song.hearts);
-
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle(song.title)
-                .setContentText(subtitle)
+                .setContentText(artistWithHearts(song))
                 .setSubText(song.genre)
                 .setSmallIcon(R.drawable.ic_music_note)
                 .setContentIntent(contentIntent)
@@ -1052,6 +1126,12 @@ public class MusicService extends MediaBrowserServiceCompat {
                 case ACTION_DISLIKE:
                     handleHeartsAction(-1);
                     break;
+                case ACTION_SHUFFLE_SKIP:
+                    handleShuffleSkip();
+                    break;
+                case ACTION_SURPRISE:
+                    handleSurprise();
+                    break;
                 case "SET_VOLUME":
                     if (extras != null) {
                         float vol = extras.getFloat("volume", 1.0f);
@@ -1150,25 +1230,33 @@ public class MusicService extends MediaBrowserServiceCompat {
     private void handleSurprise() {
         updatePlaybackState(PlaybackStateCompat.STATE_BUFFERING);
 
-        if (library != null && !library.isEmpty()) {
-            currentQueue = new ArrayList<>(library);
-            Collections.shuffle(currentQueue);
-            currentIndex = 0;
-            updateQueue();
-            requestAudioFocus();
-            playSong(currentQueue.get(0));
-            return;
-        }
+        // Pick random source: suno (fast), youtube, torrent
+        String[] sources = {"suno", "suno", "youtube", "suno"};
+        String source = sources[new java.util.Random().nextInt(sources.length)];
+        Log.d(TAG, "Surprise from: " + source);
 
-        apiClient.fetchSurprise(songs -> {
-            if (!songs.isEmpty()) {
-                currentQueue = songs;
+        apiClient.fetchSurpriseFromSource(source, song -> {
+            if (song != null && song.audioUrl != null && !song.audioUrl.isEmpty()) {
+                Log.d(TAG, "Surprise got: " + song.title + " from " + source);
+                // Add to front of queue
+                currentQueue.add(0, song);
                 currentIndex = 0;
                 updateQueue();
                 requestAudioFocus();
-                playSong(songs.get(0));
+                playSong(song);
             } else {
-                updatePlaybackState(PlaybackStateCompat.STATE_ERROR);
+                // Fallback: shuffle library
+                Log.d(TAG, "Surprise API failed, shuffling library");
+                if (library != null && !library.isEmpty()) {
+                    currentQueue = new ArrayList<>(library);
+                    Collections.shuffle(currentQueue);
+                    currentIndex = 0;
+                    updateQueue();
+                    requestAudioFocus();
+                    playSong(currentQueue.get(0));
+                } else {
+                    updatePlaybackState(PlaybackStateCompat.STATE_ERROR);
+                }
             }
         });
     }
@@ -1183,10 +1271,6 @@ public class MusicService extends MediaBrowserServiceCompat {
         heartsMap.put(song.id, song.hearts);
         Log.d(TAG, "Hearts " + (delta > 0 ? "+" : "") + delta + " for " + song.title + " → " + song.hearts);
 
-        // Update metadata to reflect new hearts in subtitle
-        updateMetadataWithDuration();
-        updateNotification();
-
         // Persist to server
         apiClient.saveHearts(song.id, song.hearts, success -> {
             if (success) {
@@ -1195,6 +1279,58 @@ public class MusicService extends MediaBrowserServiceCompat {
                 Log.w(TAG, "Hearts save FAILED for " + song.id);
             }
         });
+
+        // Notify WebView so phone UI updates hearts display
+        Bundle heartsBundle = new Bundle();
+        heartsBundle.putString("songId", song.id);
+        heartsBundle.putInt("hearts", song.hearts);
+        heartsBundle.putInt("delta", delta);
+        mediaSession.sendSessionEvent("heartsUpdate", heartsBundle);
+
+        // Si dislike y hearts <= -1 → borrar canción de la cola y saltar
+        if (delta < 0 && song.hearts <= -1) {
+            Log.d(TAG, "Removing disliked song from queue: " + song.title);
+            releaseNextPlayer();
+            currentQueue.remove(currentIndex);
+            // También eliminar de la biblioteca en memoria
+            if (library != null) library.remove(song);
+
+            if (currentQueue.isEmpty()) {
+                isPrepared = false;
+                mediaPlayer.stop();
+                updatePlaybackState(PlaybackStateCompat.STATE_STOPPED);
+                stopForeground(true);
+                return;
+            }
+            // Ajustar índice si nos pasamos del final
+            if (currentIndex >= currentQueue.size()) currentIndex = 0;
+            updateQueue();
+            playSong(currentQueue.get(currentIndex));
+            return;
+        }
+
+        // Update metadata to reflect new hearts
+        updateMetadataWithDuration();
+        updateNotification();
+    }
+
+    // === Shuffle Skip (saltar a canción aleatoria) ===
+
+    private void handleShuffleSkip() {
+        if (currentQueue.size() <= 1) return;
+        releaseNextPlayer();
+
+        // Elegir índice aleatorio diferente al actual
+        int randomIdx;
+        java.util.Random rnd = new java.util.Random();
+        do {
+            randomIdx = rnd.nextInt(currentQueue.size());
+        } while (randomIdx == currentIndex && currentQueue.size() > 1);
+
+        currentIndex = randomIdx;
+        Log.d(TAG, "Shuffle skip to: " + currentQueue.get(currentIndex).title);
+        requestAudioFocus();
+        playSong(currentQueue.get(currentIndex));
     }
 
     // === Voice Search ===

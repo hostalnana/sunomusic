@@ -154,7 +154,66 @@ if ($source === 'torrent') {
     exit;
 }
 
-echo json_encode(['success' => false, 'error' => 'Fuente no valida (youtube|torrent)']);
+// === SUNO ===
+if ($source === 'suno') {
+    $CLIPS_FILE = __DIR__ . '/suno_clips.json';
+    $CDN_BASE = 'https://cdn1.suno.ai/';
+    $clipsData = @json_decode(file_get_contents($CLIPS_FILE), true);
+
+    if (!$clipsData || empty($clipsData)) {
+        echo json_encode(['success' => false, 'error' => 'No hay clips de Suno']);
+        exit;
+    }
+
+    // Pick a random genre
+    $genres = array_keys($clipsData);
+    $randomGenre = $genres[array_rand($genres)];
+    $clips = $clipsData[$randomGenre];
+
+    // Deduplicate
+    $seen = [];
+    $unique = [];
+    foreach ($clips as $clip) {
+        $cleanTitle = preg_replace('/ v[12]$/', '', $clip['title'] ?? '');
+        if (!isset($seen[$cleanTitle])) {
+            $seen[$cleanTitle] = true;
+            $unique[] = $clip;
+        }
+    }
+
+    if (empty($unique)) {
+        echo json_encode(['success' => false, 'error' => 'No se encontraron canciones']);
+        exit;
+    }
+
+    shuffle($unique);
+    $pick = $unique[0];
+
+    echo json_encode([
+        'success' => true,
+        'query' => $randomGenre,
+        'track' => [
+            'id' => 'suno-' . $pick['id'],
+            'title' => $pick['title'] ?? 'Suno AI Track',
+            'artist' => 'Suno AI',
+            'url' => $CDN_BASE . $pick['id'] . '.mp3',
+            'thumb' => 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300',
+            'genre' => $randomGenre,
+            'source' => 'suno'
+        ]
+    ]);
+    exit;
+}
+
+// === RANDOM (sin fuente especifica) ===
+if ($source === 'random' || $source === '') {
+    $sources = ['suno', 'youtube', 'suno', 'suno']; // Peso mayor a suno (mas rapido)
+    $picked = $sources[array_rand($sources)];
+    header('Location: surprise.php?source=' . $picked);
+    exit;
+}
+
+echo json_encode(['success' => false, 'error' => 'Fuente no valida (youtube|torrent|suno|random)']);
 
 function formatBytes($bytes) {
     if ($bytes <= 0) return '0 B';

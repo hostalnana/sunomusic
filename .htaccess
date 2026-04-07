@@ -1,4 +1,6 @@
 AddType application/vnd.android.package-archive .apk
 
 RewriteEngine On
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 RewriteRule ^login_native\.html$ login_native.php [L]

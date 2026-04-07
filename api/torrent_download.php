@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once __DIR__ . '/tag_helper.php';
+require_once __DIR__ . '/storage_helper.php';
 
 $downloadDir = realpath(__DIR__ . '/../downloads');
 $jobDir = $downloadDir . '/torrent_jobs/';
@@ -269,6 +270,13 @@ if (!preg_match('/^magnet:\?xt=urn:btih:[a-fA-F0-9]{32,}/i', $magnet)) {
 
 if (!$aria2) {
     echo json_encode(['success' => false, 'error' => 'aria2c no instalado en el servidor']);
+    exit;
+}
+
+// Check storage limit before downloading (estimate ~100MB per torrent)
+$storageError = checkStorageOrFail(100 * 1024 * 1024);
+if ($storageError) {
+    echo $storageError;
     exit;
 }
 

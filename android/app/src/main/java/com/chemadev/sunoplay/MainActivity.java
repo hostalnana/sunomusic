@@ -268,6 +268,14 @@ public class MainActivity extends AppCompatActivity {
             // Custom events from MusicService
             if ("songComplete".equals(event)) {
                 notifyWebView("songComplete", "null");
+            } else if ("heartsUpdate".equals(event)) {
+                if (extras != null) {
+                    String songId = extras.getString("songId", "");
+                    int hearts = extras.getInt("hearts", 0);
+                    int delta = extras.getInt("delta", 0);
+                    notifyWebView("heartsUpdate", "{\"songId\":\"" + songId.replace("\"", "'") +
+                            "\",\"hearts\":" + hearts + ",\"delta\":" + delta + "}");
+                }
             } else if ("error".equals(event)) {
                 String msg = extras != null ? extras.getString("message", "Error") : "Error";
                 notifyWebView("error", "{\"message\":\"" + msg.replace("\"", "'") + "\"}");

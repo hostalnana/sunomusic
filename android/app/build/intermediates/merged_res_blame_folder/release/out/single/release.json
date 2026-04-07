@@ -16,16 +16,24 @@
         "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/drawable/ic_pause.xml"
     },
     {
+        "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/drawable_ic_heart.xml.flat",
+        "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/drawable/ic_heart.xml"
+    },
+    {
         "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/layout_item_song.xml.flat",
         "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/layout/item_song.xml"
+    },
+    {
+        "merged": "com.chemadev.sunoplay.app-merged_res-21:/drawable_ic_surprise.xml.flat",
+        "source": "com.chemadev.sunoplay.app-main-22:/drawable/ic_surprise.xml"
     },
     {
         "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/drawable_ic_play.xml.flat",
         "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/drawable/ic_play.xml"
     },
     {
-        "merged": "com.chemadev.sunoplay.app-merged_res-21:/drawable_ic_heart_broken.xml.flat",
-        "source": "com.chemadev.sunoplay.app-main-22:/drawable/ic_heart_broken.xml"
+        "merged": "com.chemadev.sunoplay.app-merged_res-21:/drawable_ic_shuffle.xml.flat",
+        "source": "com.chemadev.sunoplay.app-main-22:/drawable/ic_shuffle.xml"
     },
     {
         "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/drawable_bg_player_bar.xml.flat",
@@ -48,10 +56,6 @@
         "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/drawable/ic_music_note.xml"
     },
     {
-        "merged": "com.chemadev.sunoplay.app-merged_res-21:/drawable_ic_heart.xml.flat",
-        "source": "com.chemadev.sunoplay.app-main-22:/drawable/ic_heart.xml"
-    },
-    {
         "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/drawable_bg_play_button.xml.flat",
         "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/drawable/bg_play_button.xml"
     },
@@ -66,6 +70,10 @@
     {
         "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/drawable_bg_gradient.xml.flat",
         "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/drawable/bg_gradient.xml"
+    },
+    {
+        "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/drawable_ic_heart_broken.xml.flat",
+        "source": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-main-22:/drawable/ic_heart_broken.xml"
     },
     {
         "merged": "/home/chemazener/.gradle/daemon/8.5/com.chemadev.sunoplay.app-merged_res-21:/mipmap-xxxhdpi_ic_launcher.png.flat",
